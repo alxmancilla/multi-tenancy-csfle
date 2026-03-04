@@ -1,0 +1,19 @@
+server:
+  port: 8080
+
+spring:
+  application:
+    name: fle-demo
+
+mongodb:
+  uri: mongodb+srv://demo:d3m0p4ss@democluster.elz1q.mongodb.net/?appName=FLEDemo
+  database: fle_demo
+  keyvault:
+    namespace: fle_demo.__keyVault
+  local-master-key-path: ./local_master_key.bin
+
+logging:
+  level:
+    com.example.fledemo: DEBUG
+    org.mongodb.driver: INFO
+
