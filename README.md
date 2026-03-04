@@ -4,7 +4,6 @@ A complete, runnable demonstration of MongoDB Client-Side Field Level Encryption
 
 > **🚀 New here?** Start with **[GETTING_STARTED.md](GETTING_STARTED.md)** for a quick 5-minute setup guide!
 >
-> **📚 Looking for specific docs?** See **[DOCUMENTATION_INDEX.md](DOCUMENTATION_INDEX.md)** for a complete guide to all documentation.
 
 ## 🎯 Key Features
 
