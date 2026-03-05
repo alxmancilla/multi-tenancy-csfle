@@ -592,14 +592,13 @@ The application will:
 ## 📚 Learn More
 
 ### Documentation in This Repository
-- [`SEPARATE_MASTER_KEYS_IMPLEMENTATION.md`](SEPARATE_MASTER_KEYS_IMPLEMENTATION.md) - **Detailed guide on separate master keys implementation**
-- [`INSTALL_CRYPT_SHARED_LIBRARY.md`](INSTALL_CRYPT_SHARED_LIBRARY.md) - Detailed installation guide for the Automatic Encryption Shared Library
-- [`CRYPT_SHARED_VS_MONGOCRYPTD.md`](CRYPT_SHARED_VS_MONGOCRYPTD.md) - Comparison between modern and deprecated approaches
+- [`GETTING_STARTED.md`](GETTING_STARTED.md) - Quick 5-minute setup guide
+- [`SEPARATE_MASTER_KEYS_IMPLEMENTATION.md`](SEPARATE_MASTER_KEYS_IMPLEMENTATION.md) - Detailed guide on separate master keys implementation
 - [`ARCHITECTURE.md`](ARCHITECTURE.md) - Detailed architecture documentation
 - [`QUICKSTART.md`](QUICKSTART.md) - Quick start guide
 - [`PROJECT_SUMMARY.md`](PROJECT_SUMMARY.md) - Complete project overview
-- [`GETTING_STARTED.md`](GETTING_STARTED.md) - Quick 5-minute setup guide
-- [`DOCUMENTATION_INDEX.md`](DOCUMENTATION_INDEX.md) - Complete guide to all documentation
+- [`PRESENTATION.md`](PRESENTATION.md) - Full slide deck for team presentations
+- [`EXECUTIVE_SUMMARY.md`](EXECUTIVE_SUMMARY.md) - One-page executive summary
 
 ### External Resources
 - [MongoDB Client-Side Field Level Encryption](https://www.mongodb.com/docs/manual/core/csfle/)
