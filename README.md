@@ -117,8 +117,8 @@ Three pre-seeded tenants:
 
 3. **Node.js 18+ and npm**
    ```bash
-   node -version
-   npm -version
+   node --version
+   npm --version
    ```
 
 4. **MongoDB 8.0**
