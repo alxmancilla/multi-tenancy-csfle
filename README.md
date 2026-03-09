@@ -63,7 +63,7 @@ This demo implements **Option 2: Separate Master Keys Per Tenant** for true cryp
 
 ### Tech Stack
 
-- **Backend**: Java 17+, Spring Boot 3.x
+- **Backend**: Java 21+, Spring Boot 3.x
 - **Frontend**: React 18+ with Vite
 - **Database**: MongoDB 8.0
 - **MongoDB Driver**: mongodb-driver-sync 5.2.1 with CSFLE support
@@ -209,7 +209,7 @@ docker-compose up --build
 
 This will:
 - Start MongoDB 8.0 in a container
-- Build and start the backend (Java 17 + Spring Boot)
+- Build and start the backend (Java 21 + Spring Boot)
 - Build and start the frontend (React + Nginx)
 - Configure networking and health checks
 
@@ -545,7 +545,7 @@ shasum local_master_key*.bin
 
 ### Backend won't start
 - Ensure MongoDB is running on localhost:27017
-- Check that Java 17+ is installed
+- Check that Java 21+ is installed
 - **Verify the Automatic Encryption Shared Library is installed:**
   ```bash
   # macOS/Linux
