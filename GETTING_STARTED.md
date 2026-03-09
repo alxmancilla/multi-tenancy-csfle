@@ -51,8 +51,6 @@ ls -la /usr/local/lib/mongo_crypt_v1.*
 # Should show the library file
 ```
 
-📖 **Detailed instructions:** See [`INSTALL_CRYPT_SHARED_LIBRARY.md`](INSTALL_CRYPT_SHARED_LIBRARY.md)
-
 ### Step 3: Start MongoDB
 
 ```bash
@@ -114,14 +112,14 @@ npm run dev
 
 ### Essential Reading
 1. **[README.md](README.md)** - Complete documentation
-2. **[INSTALL_CRYPT_SHARED_LIBRARY.md](INSTALL_CRYPT_SHARED_LIBRARY.md)** - Library installation guide
-3. **[SETUP_CHECKLIST.md](SETUP_CHECKLIST.md)** - Step-by-step verification
+2. **[QUICKSTART.md](QUICKSTART.md)** - Quick reference guide
+3. **[SEPARATE_MASTER_KEYS_IMPLEMENTATION.md](SEPARATE_MASTER_KEYS_IMPLEMENTATION.md)** - Separate master keys implementation
 
 ### Deep Dive
 4. **[ARCHITECTURE.md](ARCHITECTURE.md)** - How it works
-5. **[CRYPT_SHARED_VS_MONGOCRYPTD.md](CRYPT_SHARED_VS_MONGOCRYPTD.md)** - Modern vs deprecated approach
-6. **[PROJECT_SUMMARY.md](PROJECT_SUMMARY.md)** - Complete project overview
-7. **[QUICKSTART.md](QUICKSTART.md)** - Quick reference guide
+5. **[PROJECT_SUMMARY.md](PROJECT_SUMMARY.md)** - Complete project overview
+6. **[PRESENTATION.md](PRESENTATION.md)** - Full slide deck for presentations
+7. **[EXECUTIVE_SUMMARY.md](EXECUTIVE_SUMMARY.md)** - One-page executive summary
 
 ## 🔧 Troubleshooting
 
@@ -130,7 +128,7 @@ npm run dev
 **Error: "Could not find crypt_shared library"**
 ```bash
 # Install the Automatic Encryption Shared Library
-# See INSTALL_CRYPT_SHARED_LIBRARY.md
+# Download from MongoDB website and place in /usr/local/lib/
 ```
 
 **Error: "Connection refused to localhost:27017"**
@@ -148,7 +146,6 @@ curl http://localhost:8080/api/v1/tenants
 ```
 
 ### More Help
-- See [SETUP_CHECKLIST.md](SETUP_CHECKLIST.md) for detailed verification
 - See [README.md](README.md) troubleshooting section
 
 ## 🎓 What You'll Learn
@@ -274,9 +271,9 @@ This is a **demo application**. For production use:
 
 ## 📞 Need Help?
 
-- 📖 Read [SETUP_CHECKLIST.md](SETUP_CHECKLIST.md) for step-by-step verification
-- 📖 Read [INSTALL_CRYPT_SHARED_LIBRARY.md](INSTALL_CRYPT_SHARED_LIBRARY.md) for library installation
-- 📖 Read [CRYPT_SHARED_VS_MONGOCRYPTD.md](CRYPT_SHARED_VS_MONGOCRYPTD.md) to understand the encryption library
+- 📖 Read [ARCHITECTURE.md](ARCHITECTURE.md) for detailed architecture
+- 📖 Read [SEPARATE_MASTER_KEYS_IMPLEMENTATION.md](SEPARATE_MASTER_KEYS_IMPLEMENTATION.md) for implementation details
+- 📖 Read [PRESENTATION.md](PRESENTATION.md) for a full presentation slide deck
 - 🌐 Visit [MongoDB CSFLE Documentation](https://www.mongodb.com/docs/manual/core/csfle/)
 
 ---

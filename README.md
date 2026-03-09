@@ -193,11 +193,7 @@ Three pre-seeded tenants:
    export MONGOCRYPT_SHARED_LIB_PATH=/path/to/mongo_crypt_v1.dylib
    ```
 
-   **📖 For detailed installation instructions, see:** [`INSTALL_CRYPT_SHARED_LIBRARY.md`](INSTALL_CRYPT_SHARED_LIBRARY.md)
-
 ## 🚀 Setup Instructions
-
-> **📋 Prefer a checklist?** See [`SETUP_CHECKLIST.md`](SETUP_CHECKLIST.md) for a step-by-step verification guide.
 
 ### 1. Start MongoDB
 

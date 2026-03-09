@@ -127,7 +127,7 @@ All components fully implemented with complete functionality:
 ## 🚀 Running the Demo
 
 **Prerequisites:**
-1. Install MongoDB Automatic Encryption Shared Library (see `INSTALL_CRYPT_SHARED_LIBRARY.md`)
+1. Install MongoDB Automatic Encryption Shared Library (download from MongoDB website)
 2. Verify installation: `ls -la /usr/local/lib/mongo_crypt_v1.*`
 
 ```bash
