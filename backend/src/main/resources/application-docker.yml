@@ -1,0 +1,18 @@
+server:
+  port: 8080
+
+spring:
+  application:
+    name: fle-demo
+
+mongodb:
+  uri: ${MONGODB_URI:mongodb://mongodb:27017}
+  database: ${MONGODB_DATABASE:fle_demo}
+  keyvault:
+    namespace: ${MONGODB_KEYVAULT_NAMESPACE:fle_demo.__keyVault}
+
+logging:
+  level:
+    com.example.fledemo: INFO
+    org.mongodb.driver: WARN
+

@@ -4,6 +4,7 @@ A complete, runnable demonstration of MongoDB Client-Side Field Level Encryption
 
 > **🚀 New here?** Start with **[GETTING_STARTED.md](GETTING_STARTED.md)** for a quick 5-minute setup guide!
 >
+> **🐳 Want to run with Docker?** See **[DOCKER_SETUP.md](DOCKER_SETUP.md)** for one-command deployment!
 
 ## 🎯 Key Features
 
@@ -104,7 +105,7 @@ Three pre-seeded tenants:
 
 ## 📋 Prerequisites
 
-1. **Java 17 or higher**
+1. **Java 21 or higher**
    ```bash
    java -version
    ```
@@ -195,7 +196,35 @@ Three pre-seeded tenants:
 
 ## 🚀 Setup Instructions
 
-### 1. Start MongoDB
+> **🐳 Prefer Docker?** Skip this section and see [DOCKER_SETUP.md](DOCKER_SETUP.md) for one-command deployment!
+
+### Option 1: Docker Setup (Recommended for Quick Demo)
+
+The easiest way to run the entire application:
+
+```bash
+# One command to start everything
+docker-compose up --build
+```
+
+This will:
+- Start MongoDB 8.0 in a container
+- Build and start the backend (Java 17 + Spring Boot)
+- Build and start the frontend (React + Nginx)
+- Configure networking and health checks
+
+**Access the application:**
+- Frontend: http://localhost:3000
+- Backend API: http://localhost:8080
+- MongoDB: localhost:27017
+
+**See [DOCKER_SETUP.md](DOCKER_SETUP.md) for detailed Docker instructions.**
+
+---
+
+### Option 2: Manual Setup (For Development)
+
+#### 1. Start MongoDB
 
 Ensure MongoDB is running on `localhost:27017`:
 
@@ -212,7 +241,7 @@ brew services start mongodb-community
 sudo systemctl start mongod
 ```
 
-### 2. Backend Setup
+#### 2. Backend Setup
 
 Navigate to the backend directory and build the project:
 
@@ -262,7 +291,7 @@ Seeding data for tenant: tenant_alpha
 Started FledemoApplication in X.XXX seconds
 ```
 
-### 3. Frontend Setup
+#### 3. Frontend Setup
 
 In a new terminal, navigate to the frontend directory:
 
@@ -589,6 +618,7 @@ The application will:
 
 ### Documentation in This Repository
 - [`GETTING_STARTED.md`](GETTING_STARTED.md) - Quick 5-minute setup guide
+- [`DOCKER_SETUP.md`](DOCKER_SETUP.md) - **Docker deployment guide (one-command setup)**
 - [`SEPARATE_MASTER_KEYS_IMPLEMENTATION.md`](SEPARATE_MASTER_KEYS_IMPLEMENTATION.md) - Detailed guide on separate master keys implementation
 - [`ARCHITECTURE.md`](ARCHITECTURE.md) - Detailed architecture documentation
 - [`QUICKSTART.md`](QUICKSTART.md) - Quick start guide

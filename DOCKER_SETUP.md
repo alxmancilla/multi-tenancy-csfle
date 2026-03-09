@@ -1,0 +1,285 @@
+# Docker Setup Guide
+
+This guide explains how to run the MongoDB CSFLE Multi-Tenancy Demo using Docker containers.
+
+## 🐳 Prerequisites
+
+- **Docker**: Version 20.10 or higher
+- **Docker Compose**: Version 2.0 or higher
+
+Check your versions:
+```bash
+docker --version
+docker-compose --version
+```
+
+## 🚀 Quick Start
+
+### Step 1: Configure Environment Variables
+
+Docker Compose automatically loads variables from the `.env` file:
+
+```bash
+# Copy the example environment file
+cp .env.example .env
+
+# (Optional) Edit .env to customize configuration
+# For MongoDB Atlas: Update MONGODB_URI in .env
+# For local MongoDB: Use the default settings
+```
+
+### Step 2: Start the Application
+
+**Option A: Use Local MongoDB Container (Default)**
+```bash
+docker-compose up --build
+```
+
+**Option B: Use MongoDB Atlas**
+```bash
+# 1. Edit .env and set your MongoDB Atlas URI:
+#    MONGODB_URI=mongodb+srv://username:password@cluster.mongodb.net/...
+#
+# 2. Comment out the 'mongodb' service in docker-compose.yml
+#
+# 3. Start services:
+docker-compose up --build
+```
+
+This will:
+1. Load environment variables from `.env` file
+2. Build the backend Docker image (Java 21 + Spring Boot)
+3. Build the frontend Docker image (React + Nginx)
+4. Start MongoDB 8.0 container (if using local MongoDB)
+5. Start all services with proper networking and health checks
+
+**Access the application:**
+- **Frontend**: http://localhost:3000
+- **Backend API**: http://localhost:8080
+- **MongoDB**: localhost:27017 (if using local container)
+
+## 📦 What's Included
+
+### Services
+
+1. **MongoDB** (`mongodb`)
+   - Image: `mongo:8.0`
+   - Port: `27017`
+   - Database: `fle_demo`
+   - Persistent volume for data
+
+2. **Backend** (`backend`)
+   - Java 21 + Spring Boot
+   - MongoDB CSFLE support
+   - Automatic Encryption Shared Library included
+   - Port: `8080`
+
+3. **Frontend** (`frontend`)
+   - React 18 + Vite
+   - Nginx for production serving
+   - Port: `3000` (mapped to nginx port 80)
+
+### Volumes
+
+- `mongodb_data`: Persistent storage for MongoDB data
+
+### Network
+
+- `fle-network`: Bridge network connecting all services
+
+### MongoDB Automatic Encryption Shared Library
+
+The backend container automatically downloads and configures the **MongoDB Automatic Encryption Shared Library** (`mongo_crypt_v1.so`):
+
+- **Purpose**: Enables Client-Side Field Level Encryption (CSFLE) without requiring `mongocryptd`
+- **Architecture Detection**: Automatically detects CPU architecture and downloads the correct version:
+  - **ARM64/aarch64** (Apple Silicon M1/M2/M3): Downloads ARM64 version
+  - **x86_64** (Intel/AMD): Downloads x86_64 version
+- **Version**: 8.0.5 (compatible with MongoDB Driver 5.2.1)
+- **Location**: `/usr/local/lib/mongo_crypt_v1.so`
+- **Environment Variables**:
+  - `MONGOCRYPT_SHARED_LIB_PATH=/usr/local/lib/mongo_crypt_v1.so`
+  - `LD_LIBRARY_PATH=/usr/local/lib`
+
+This library is the **modern replacement for mongocryptd** and provides better performance and easier deployment.
+
+## 🔧 Docker Commands
+
+### Start the application
+```bash
+# Start in foreground (see logs)
+docker-compose up
+
+# Start in background (detached mode)
+docker-compose up -d
+
+# Rebuild and start
+docker-compose up --build
+```
+
+### Stop the application
+```bash
+# Stop all services
+docker-compose down
+
+# Stop and remove volumes (clean slate)
+docker-compose down -v
+```
+
+### View logs
+```bash
+# All services
+docker-compose logs -f
+
+# Specific service
+docker-compose logs -f backend
+docker-compose logs -f frontend
+docker-compose logs -f mongodb
+```
+
+### Check service status
+```bash
+docker-compose ps
+```
+
+### Restart a specific service
+```bash
+docker-compose restart backend
+docker-compose restart frontend
+```
+
+### Execute commands in containers
+```bash
+# Access MongoDB shell
+docker-compose exec mongodb mongosh fle_demo
+
+# Access backend container
+docker-compose exec backend sh
+
+# Access frontend container
+docker-compose exec frontend sh
+```
+
+## 🔍 Troubleshooting
+
+### Port conflicts
+If ports 3000, 8080, or 27017 are already in use:
+
+**Option 1**: Stop the conflicting service
+```bash
+# Find what's using the port
+lsof -i :8080
+lsof -i :3000
+lsof -i :27017
+
+# Kill the process
+kill -9 <PID>
+```
+
+**Option 2**: Change ports in `docker-compose.yml`
+```yaml
+services:
+  frontend:
+    ports:
+      - "3001:80"  # Change 3000 to 3001
+  backend:
+    ports:
+      - "8081:8080"  # Change 8080 to 8081
+```
+
+### Backend fails to start
+```bash
+# Check backend logs
+docker-compose logs backend
+
+# Common issues:
+# 1. MongoDB not ready - wait for health check
+# 2. Master key files missing - ensure .bin files exist in backend/
+```
+
+### Frontend can't connect to backend
+```bash
+# Verify backend is healthy
+curl http://localhost:8080/api/v1/tenants
+
+# Check network connectivity
+docker-compose exec frontend ping backend
+```
+
+### Clean restart
+```bash
+# Stop everything and remove volumes
+docker-compose down -v
+
+# Remove all images
+docker-compose down --rmi all
+
+# Rebuild from scratch
+docker-compose up --build
+```
+
+## 🔐 Master Keys
+
+The Docker setup automatically mounts the master key files from the `backend/` directory:
+- `local_master_key_tenant_alpha.bin`
+- `local_master_key_tenant_beta.bin`
+- `local_master_key_tenant_gamma.bin`
+
+These files are mounted as read-only volumes in the backend container.
+
+## 🌐 Environment Variables
+
+### Backend
+Configured in `docker-compose.yml`:
+- `MONGODB_URI`: MongoDB connection string
+- `MONGODB_DATABASE`: Database name
+- `MONGODB_KEYVAULT_NAMESPACE`: Key vault namespace
+- `SPRING_PROFILES_ACTIVE`: Spring profile (docker)
+
+### Frontend
+- `VITE_API_BASE_URL`: Backend API URL (set to http://localhost:8080)
+
+## 📊 Health Checks
+
+All services include health checks:
+
+**MongoDB**: Checks database connectivity
+```bash
+docker-compose exec mongodb mongosh --eval "db.adminCommand('ping')"
+```
+
+**Backend**: Checks API endpoint
+```bash
+curl http://localhost:8080/api/v1/tenants
+```
+
+## 🎯 Production Considerations
+
+This Docker setup is designed for **demonstration purposes**. For production:
+
+1. **Use external MongoDB** (MongoDB Atlas recommended)
+   - Update `MONGODB_URI` in docker-compose.yml
+   - Remove the mongodb service
+
+2. **Use enterprise KMS** instead of local master keys
+   - AWS KMS, Azure Key Vault, or GCP KMS
+   - Update backend configuration
+
+3. **Enable HTTPS**
+   - Add SSL certificates
+   - Configure nginx for HTTPS
+
+4. **Use Docker secrets** for sensitive data
+   - Master keys
+   - MongoDB credentials
+
+5. **Add monitoring and logging**
+   - Prometheus + Grafana
+   - ELK stack
+
+## 📚 Next Steps
+
+- Read [README.md](README.md) for application documentation
+- Read [GETTING_STARTED.md](GETTING_STARTED.md) for feature walkthrough
+- Read [PRESENTATION.md](PRESENTATION.md) for technical deep dive
+

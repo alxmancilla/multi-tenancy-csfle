@@ -39,3 +39,6 @@ pnpm-debug.log*
 .env.test.local
 .env.production.local
 
+# Docker
+docker-compose.override.yml
+

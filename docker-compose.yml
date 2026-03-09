@@ -1,0 +1,84 @@
+# MongoDB CSFLE Multi-Tenancy Demo - Docker Compose Configuration
+#
+# This file automatically loads environment variables from .env file
+# Copy .env.example to .env and customize as needed
+#
+# NOTE: If using MongoDB Atlas, you can comment out the 'mongodb' service below
+#       and configure MONGODB_URI in .env to point to your Atlas cluster
+
+services:
+  # MongoDB service (local container)
+  # Comment out this entire service if using MongoDB Atlas
+  mongodb:
+    image: mongo:8.0
+    container_name: fle-demo-mongodb
+    ports:
+      - "27017:27017"
+    environment:
+      MONGO_INITDB_DATABASE: fle_demo
+    volumes:
+      - mongodb_data:/data/db
+    networks:
+      - fle-network
+    healthcheck:
+      test: ["CMD", "mongosh", "--eval", "db.adminCommand('ping')"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
+
+  # Backend service
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: fle-demo-backend
+    ports:
+      - "8080:8080"
+    environment:
+      MONGODB_URI: ${MONGODB_URI:-mongodb://mongodb:27017}
+      MONGODB_DATABASE: ${MONGODB_DATABASE:-fle_demo}
+      MONGODB_KEYVAULT_NAMESPACE: ${MONGODB_KEYVAULT_NAMESPACE:-fle_demo.__keyVault}
+      SPRING_PROFILES_ACTIVE: ${SPRING_PROFILES_ACTIVE:-docker}
+      MONGOCRYPT_SHARED_LIB_PATH: /usr/local/lib/mongo_crypt_v1.so
+    volumes:
+      # Mount master key files
+      - ./backend/local_master_key_tenant_alpha.bin:/app/local_master_key_tenant_alpha.bin:ro
+      - ./backend/local_master_key_tenant_beta.bin:/app/local_master_key_tenant_beta.bin:ro
+      - ./backend/local_master_key_tenant_gamma.bin:/app/local_master_key_tenant_gamma.bin:ro
+    depends_on:
+      mongodb:
+        condition: service_healthy
+    networks:
+      - fle-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/api/v1/tenants"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+
+  # Frontend service
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: fle-demo-frontend
+    ports:
+      - "3000:80"
+    depends_on:
+      backend:
+        condition: service_healthy
+    networks:
+      - fle-network
+    environment:
+      VITE_API_BASE_URL: ${VITE_API_BASE_URL:-http://localhost:8080}
+
+volumes:
+  mongodb_data:
+    driver: local
+
+networks:
+  fle-network:
+    driver: bridge
+
