@@ -619,6 +619,7 @@ The application will:
 ### Documentation in This Repository
 - [`GETTING_STARTED.md`](GETTING_STARTED.md) - Quick 5-minute setup guide
 - [`DOCKER_SETUP.md`](DOCKER_SETUP.md) - **Docker deployment guide (one-command setup)**
+- [`TROUBLESHOOTING.md`](TROUBLESHOOTING.md) - **Common issues and solutions**
 - [`SEPARATE_MASTER_KEYS_IMPLEMENTATION.md`](SEPARATE_MASTER_KEYS_IMPLEMENTATION.md) - Detailed guide on separate master keys implementation
 - [`ARCHITECTURE.md`](ARCHITECTURE.md) - Detailed architecture documentation
 - [`QUICKSTART.md`](QUICKSTART.md) - Quick start guide
