@@ -16,11 +16,24 @@ This application demonstrates **MongoDB Client-Side Field Level Encryption (CSFL
 
 ```bash
 # Check what you have
-java -version    # Need 17+
+java -version    # Need 21+
 mvn -version     # Need 3.6+
-node -version    # Need 18+
+node --version   # Need 18+
 mongod --version # Need 8.0
 ```
+
+**Or use Docker** (recommended for easy setup):
+```bash
+# Copy environment file
+cp .env.example .env
+
+# Start everything with Docker
+docker-compose up --build
+
+# Access at http://localhost:3000
+```
+
+See [DOCKER_SETUP.md](DOCKER_SETUP.md) for full Docker instructions.
 
 ### Step 2: Install Automatic Encryption Shared Library ⚠️ CRITICAL
 

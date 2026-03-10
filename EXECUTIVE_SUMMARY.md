@@ -56,9 +56,9 @@ This demonstration showcases **MongoDB Client-Side Field Level Encryption (CSFLE
 ## Technical Architecture
 
 **Frontend:** React 18+ with Vite
-**Backend:** Java 17, Spring Boot 3.2.0
-**Database:** MongoDB Atlas (shared collections)
-**Encryption:** MongoDB Driver with CSFLE support
+**Backend:** Java 21, Spring Boot 3.2.0
+**Database:** MongoDB 8.0 (shared collections)
+**Encryption:** MongoDB Driver with CSFLE support + Automatic Encryption Shared Library
 **Key Management:** Local KMS (demo) → Production: AWS KMS, Azure Key Vault, GCP KMS
 
 **Three Tenants:**

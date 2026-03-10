@@ -5,12 +5,20 @@ Quick command reference for running the MongoDB CSFLE Multi-Tenancy Demo with Do
 ## 🚀 Quick Start
 
 ```bash
-# Start everything (one command)
+# Copy environment file
+cp .env.example .env
+
+# (Optional) Edit .env to customize configuration
+# For MongoDB Atlas: Update MONGODB_URI in .env
+
+# Start everything
 docker-compose up --build
 
 # Or use the helper script
 ./docker-start.sh
 ```
+
+**Note:** Docker Compose automatically loads environment variables from the `.env` file.
 
 ## 📋 Common Commands
 

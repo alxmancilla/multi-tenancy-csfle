@@ -103,10 +103,10 @@ All components fully implemented with complete functionality:
 ## 🔧 Technology Stack
 
 **Backend:**
-- Java 17
+- Java 21
 - Spring Boot 3.2.0
-- MongoDB Driver Sync 5.2.0
-- MongoDB Crypt 1.11.0
+- MongoDB Driver Sync 5.2.1
+- MongoDB Automatic Encryption Shared Library 8.0.5
 - Lombok (boilerplate reduction)
 
 **Frontend:**
@@ -120,14 +120,32 @@ All components fully implemented with complete functionality:
 - Collections: `customers`, `orders`, `__keyVault`
 
 **Encryption:**
-- MongoDB Automatic Encryption Shared Library 8.0.3
+- MongoDB Automatic Encryption Shared Library 8.0.5
 - Replaces deprecated `mongocryptd`
 - Client-side encryption/decryption
 
+**Deployment:**
+- Docker + Docker Compose (optional, recommended for easy setup)
+- Multi-stage Dockerfiles for optimized images
+- Environment variable configuration via `.env` file
+
 ## 🚀 Running the Demo
 
+### Option 1: Docker (Recommended)
+```bash
+cp .env.example .env
+docker-compose up --build
+# Access at http://localhost:3000
+```
+
+### Option 2: Local Installation
+
 **Prerequisites:**
-1. Install MongoDB Automatic Encryption Shared Library (download from MongoDB website)
+1. Java 21+
+2. Maven 3.6+
+3. Node.js 18+
+4. MongoDB 8.0+
+5. Install MongoDB Automatic Encryption Shared Library (download from MongoDB website)
 2. Verify installation: `ls -la /usr/local/lib/mongo_crypt_v1.*`
 
 ```bash

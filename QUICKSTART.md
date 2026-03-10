@@ -1,16 +1,38 @@
 # Quick Start Guide
 
-## Prerequisites Check
+## 🐳 Option 1: Docker (Recommended - Easiest)
 
 ```bash
-# Check Java version (need 17+)
+# Prerequisites: Docker 20.10+ and Docker Compose 2.0+
+docker --version
+docker-compose --version
+
+# Copy environment file
+cp .env.example .env
+
+# Start everything
+docker-compose up --build
+
+# Access at http://localhost:3000
+```
+
+See [DOCKER_SETUP.md](DOCKER_SETUP.md) for full Docker documentation.
+
+---
+
+## 💻 Option 2: Local Installation
+
+### Prerequisites Check
+
+```bash
+# Check Java version (need 21+)
 java -version
 
 # Check Maven
 mvn -version
 
 # Check Node.js (need 18+)
-node -version
+node --version
 
 # Check MongoDB (need 8.0)
 mongod --version

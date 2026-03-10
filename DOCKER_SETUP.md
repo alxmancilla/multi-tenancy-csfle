@@ -229,15 +229,44 @@ These files are mounted as read-only volumes in the backend container.
 
 ## 🌐 Environment Variables
 
-### Backend
-Configured in `docker-compose.yml`:
-- `MONGODB_URI`: MongoDB connection string
-- `MONGODB_DATABASE`: Database name
-- `MONGODB_KEYVAULT_NAMESPACE`: Key vault namespace
-- `SPRING_PROFILES_ACTIVE`: Spring profile (docker)
+Docker Compose automatically loads environment variables from the `.env` file in the project root.
 
-### Frontend
-- `VITE_API_BASE_URL`: Backend API URL (set to http://localhost:8080)
+### Configuration File: `.env`
+
+Copy `.env.example` to `.env` and customize:
+
+```bash
+cp .env.example .env
+```
+
+### Available Variables
+
+**Backend:**
+- `MONGODB_URI`: MongoDB connection string (default: `mongodb://mongodb:27017`)
+  - For local: `mongodb://mongodb:27017`
+  - For Atlas: `mongodb+srv://username:password@cluster.mongodb.net/...`
+- `MONGODB_DATABASE`: Database name (default: `fle_demo`)
+- `MONGODB_KEYVAULT_NAMESPACE`: Key vault namespace (default: `fle_demo.__keyVault`)
+- `SPRING_PROFILES_ACTIVE`: Spring profile (default: `docker`)
+
+**Frontend:**
+- `VITE_API_BASE_URL`: Backend API URL (default: `http://localhost:8080`)
+
+### Using MongoDB Atlas
+
+To use MongoDB Atlas instead of the local container:
+
+1. Edit `.env` and set your Atlas connection string:
+   ```bash
+   MONGODB_URI=mongodb+srv://username:password@cluster.mongodb.net/?retryWrites=true&w=majority
+   ```
+
+2. Comment out the `mongodb` service in `docker-compose.yml` (lines 12-28)
+
+3. Start services:
+   ```bash
+   docker-compose up --build
+   ```
 
 ## 📊 Health Checks
 
