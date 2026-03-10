@@ -21,7 +21,7 @@ A complete, runnable demonstration of MongoDB Client-Side Field Level Encryption
 
 ### Multi-Tenancy Security Model
 
-This demo implements **Option 2: Separate Master Keys Per Tenant** for true cryptographic isolation:
+This demo implements **Separate Master Keys Per Tenant** for true cryptographic isolation:
 
 ```
 ┌─────────────────────────────────────────────────────────────────┐
