@@ -82,6 +82,10 @@ This will:
 ### Volumes
 
 - `mongodb_data`: Persistent storage for MongoDB data
+- `master_keys`: Persistent storage for tenant master key files
+  - **Why a named volume?** Docker creates directories when bind-mounting non-existent files, which breaks the application. A named volume allows the app to generate key files on first run.
+  - **Location in container:** `/app/keys/`
+  - **Files:** `local_master_key_tenant_alpha.bin`, `local_master_key_tenant_beta.bin`, `local_master_key_tenant_gamma.bin`
 
 ### Network
 
@@ -194,7 +198,10 @@ docker-compose logs backend
 
 # Common issues:
 # 1. MongoDB not ready - wait for health check
-# 2. Master key files missing - ensure .bin files exist in backend/
+# 2. ClassNotFoundException - see TROUBLESHOOTING.md
+# 3. Master key path is a directory - fixed by using named volume
+
+# For detailed solutions, see TROUBLESHOOTING.md
 ```
 
 ### Frontend can't connect to backend
@@ -220,12 +227,58 @@ docker-compose up --build
 
 ## 🔐 Master Keys
 
-The Docker setup automatically mounts the master key files from the `backend/` directory:
+The Docker setup uses a **named volume** (`master_keys`) to store tenant master key files:
 - `local_master_key_tenant_alpha.bin`
 - `local_master_key_tenant_beta.bin`
 - `local_master_key_tenant_gamma.bin`
 
-These files are mounted as read-only volumes in the backend container.
+### How It Works
+
+1. **First Run**: The application automatically generates 96-byte random master keys for each tenant and saves them to `/app/keys/` in the container
+2. **Subsequent Runs**: The application loads existing keys from the Docker volume
+3. **Persistence**: Keys are stored in a Docker named volume and persist across container restarts
+
+### Why Not Bind Mounts?
+
+Previously, the setup used bind mounts like:
+```yaml
+- ./backend/local_master_key_tenant_alpha.bin:/app/local_master_key_tenant_alpha.bin
+```
+
+**Problem**: When the file doesn't exist on the host, Docker creates a **directory** instead, causing the application to crash with `FileNotFoundException` or `IllegalStateException`.
+
+**Solution**: Use a named volume that allows the application to create files on first run.
+
+### Managing Master Keys
+
+**View keys in the volume:**
+```bash
+# Inspect the volume
+docker volume inspect multi-tenancy-csfle_master_keys
+
+# Access keys from a running container
+docker-compose exec backend ls -la /app/keys/
+```
+
+**Reset keys (regenerate):**
+```bash
+# WARNING: This will make existing encrypted data unreadable!
+docker-compose down -v
+docker volume rm multi-tenancy-csfle_master_keys
+docker-compose up --build
+```
+
+**Backup keys:**
+```bash
+# Create a temporary container to copy keys out
+docker run --rm -v multi-tenancy-csfle_master_keys:/keys -v $(pwd):/backup alpine cp -r /keys /backup/master_keys_backup
+```
+
+**Restore keys:**
+```bash
+# Copy keys back into the volume
+docker run --rm -v multi-tenancy-csfle_master_keys:/keys -v $(pwd)/master_keys_backup:/backup alpine cp -r /backup/. /keys/
+```
 
 ## 🌐 Environment Variables
 

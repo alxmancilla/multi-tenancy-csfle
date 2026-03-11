@@ -10,6 +10,7 @@ mongodb:
   database: ${MONGODB_DATABASE:fle_demo}
   keyvault:
     namespace: ${MONGODB_KEYVAULT_NAMESPACE:fle_demo.__keyVault}
+  local-master-key-path: /app/keys/local_master_key.bin
 
 logging:
   level:

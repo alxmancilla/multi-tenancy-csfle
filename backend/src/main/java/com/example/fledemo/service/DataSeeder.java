@@ -28,14 +28,27 @@ public class DataSeeder implements CommandLineRunner {
     @Override
     public void run(String... args) {
         log.info("Starting data seeding...");
-        
+
         Map<String, String[]> tenantCustomerIds = new HashMap<>();
-        
+
         for (String tenantId : tenantKeyService.getAllTenantIds()) {
-            String[] customerIds = seedTenantData(tenantId);
-            tenantCustomerIds.put(tenantId, customerIds);
+            try {
+                // Check if data already exists for this tenant
+                long existingCustomers = customerService.getCustomersByTenant(tenantId).size();
+                if (existingCustomers > 0) {
+                    log.info("Tenant {} already has {} customers, skipping seeding", tenantId, existingCustomers);
+                    continue;
+                }
+
+                String[] customerIds = seedTenantData(tenantId);
+                tenantCustomerIds.put(tenantId, customerIds);
+            } catch (Exception e) {
+                log.error("Failed to seed data for tenant {}: {}", tenantId, e.getMessage());
+                log.error("This may indicate master key mismatch. Consider clearing MongoDB data with: docker-compose down -v");
+                throw new IllegalStateException("Data seeding failed. See logs above for details.", e);
+            }
         }
-        
+
         log.info("Data seeding completed successfully");
     }
 

@@ -77,11 +77,8 @@ docker-compose logs backend
 
 # Common causes:
 # 1. MongoDB not ready - wait for health check
-# 2. Missing master key files - check backend/ directory
+# 2. Master key path is a directory (Docker bind mount issue)
 # 3. Wrong MONGODB_URI in .env file
-
-# Verify master key files exist
-ls -la backend/local_master_key_tenant_*.bin
 
 # Check MongoDB is healthy
 docker-compose ps
@@ -90,24 +87,84 @@ docker-compose ps
 
 ---
 
+### Issue: Master Key Path is a Directory (Docker Bind Mount Issue)
+
+**Error:**
+```
+IllegalStateException: Master key path exists but is a directory
+```
+
+**Cause:**
+When you bind-mount a non-existent file in Docker (e.g., `./backend/key.bin:/app/key.bin`), Docker creates a **directory** instead of waiting for the file to be created. The application then cannot write the key file.
+
+**Solution:**
+The docker-compose.yml has been updated to use a **named volume** instead of bind mounts:
+
+```yaml
+volumes:
+  - master_keys:/app/keys  # Named volume (writable)
+```
+
+This allows the application to generate master key files on first run and persist them in the Docker volume.
+
+**To reset master keys:**
+```bash
+# Remove the volume to regenerate keys
+docker-compose down -v
+docker volume rm multi-tenancy-csfle_master_keys
+
+# Restart
+docker-compose up --build
+```
+
+---
+
 ### Issue: Port Already in Use
 
 **Error:**
 ```
-Bind for 0.0.0.0:8080 failed: port is already allocated
+listen tcp 0.0.0.0:8080: bind: address already in use
 ```
 
-**Solution:**
+**Cause:** Another application is using port 8080, 3000, or 27017.
+
+**Solution 1: Find and Kill the Process**
 ```bash
 # Find what's using the port
-lsof -i :8080
-lsof -i :3000
-lsof -i :27017
+lsof -i :8080   # Backend
+lsof -i :3000   # Frontend
+lsof -i :27017  # MongoDB
 
-# Kill the process
-kill -9 <PID>
+# Example output:
+# COMMAND   PID   USER   FD   TYPE DEVICE SIZE/OFF NODE NAME
+# java      1234  user   123u IPv6  0x...      0t0  TCP *:8080 (LISTEN)
 
-# Or change ports in docker-compose.yml
+# Kill the process (replace 1234 with actual PID)
+kill -9 1234
+
+# Then restart Docker
+docker-compose up
+```
+
+**Solution 2: Change the Port (Recommended)**
+
+Edit your `.env` file:
+```bash
+# Change backend port from 8080 to 8081
+BACKEND_PORT=8081
+VITE_API_BASE_URL=http://localhost:8081
+
+# Restart
+docker-compose down
+docker-compose up
+```
+
+**Solution 3: Stop All Docker Containers**
+```bash
+# Sometimes old containers are still running
+docker ps -a
+docker stop $(docker ps -aq)
+docker-compose up
 ```
 
 ---
@@ -210,31 +267,66 @@ ls -la local_master_key_tenant_*.bin
 
 ---
 
-### Issue: Cannot Decrypt Data
+### Issue: Cannot Decrypt Data / HMAC Validation Failure
 
 **Error:**
 ```
 MongoException: HMAC validation failure
+Caused by: com.mongodb.crypt.capi.MongoCryptException: HMAC validation failure
 ```
 
-**Cause:** Using wrong master key for tenant
+**Cause:**
+The master keys have changed, but MongoDB still contains data encrypted with the **old keys**. This is actually **expected behavior** - it demonstrates that encrypted data cannot be decrypted without the correct master key!
 
-**Solution:**
-This is expected behavior! Each tenant's data can only be decrypted with their own master key. This demonstrates cryptographic isolation.
+**Common scenarios:**
+1. You ran `docker-compose down -v` which deleted the master keys volume, but MongoDB data still exists
+2. You manually deleted master key files
+3. You're using a different set of master keys than what was used to encrypt the data
 
-If you deleted master key files and regenerated them, old encrypted data cannot be decrypted.
-
-**To reset:**
+**Solution 1: Clear Everything and Start Fresh (Recommended)**
 ```bash
-# Stop backend
-# Delete master key files
-rm backend/local_master_key_tenant_*.bin
+# Stop all containers
+docker-compose down
 
-# Delete MongoDB data
-mongo fle_demo --eval "db.dropDatabase()"
+# Remove ALL volumes (MongoDB data + master keys)
+docker-compose down -v
 
-# Restart backend - new keys will be generated
+# Remove volumes explicitly
+docker volume rm multi-tenancy-csfle_mongodb_data
+docker volume rm multi-tenancy-csfle_master_keys
+
+# Start fresh - new keys and empty database
+docker-compose up --build
 ```
+
+**Solution 2: Clear Only MongoDB Data (Keep Master Keys)**
+```bash
+# Stop containers
+docker-compose down
+
+# Remove only MongoDB data
+docker volume rm multi-tenancy-csfle_mongodb_data
+
+# Restart - same keys, empty database
+docker-compose up
+```
+
+**Solution 3: Access MongoDB and Drop Database Manually**
+```bash
+# While containers are running
+docker-compose exec mongodb mongosh
+
+# In MongoDB shell:
+use fle_demo
+db.dropDatabase()
+exit
+
+# Restart backend
+docker-compose restart backend
+```
+
+**Important Note:**
+This error demonstrates the **security feature** of CSFLE - without the correct master key, encrypted data is completely unreadable. In production, you must carefully manage and backup your master keys!
 
 ---
 

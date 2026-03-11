@@ -75,6 +75,15 @@ public class LocalKmsProvider {
 
         Path keyPath = Paths.get(keyFileName);
 
+        // Check if path exists and is a directory (Docker bind mount issue)
+        if (Files.exists(keyPath) && Files.isDirectory(keyPath)) {
+            throw new IllegalStateException(
+                "Master key path exists but is a directory: " + keyFileName + ". " +
+                "This usually happens when Docker creates a directory for a non-existent bind mount. " +
+                "Use a named volume instead of bind mounting individual files."
+            );
+        }
+
         if (Files.exists(keyPath)) {
             log.info("Loading existing master key for tenant '{}' from: {}", tenantId, keyFileName);
             try (FileInputStream fis = new FileInputStream(keyPath.toFile())) {
@@ -89,7 +98,13 @@ public class LocalKmsProvider {
             byte[] masterKey = new byte[96];
             new SecureRandom().nextBytes(masterKey);
 
-            Files.createDirectories(keyPath.getParent());
+            // Safely create parent directories if they exist and are not null
+            Path parentPath = keyPath.getParent();
+            if (parentPath != null && !Files.exists(parentPath)) {
+                log.info("Creating parent directory: {}", parentPath);
+                Files.createDirectories(parentPath);
+            }
+
             try (FileOutputStream fos = new FileOutputStream(keyPath.toFile())) {
                 fos.write(masterKey);
             }

@@ -34,7 +34,7 @@ services:
       dockerfile: Dockerfile
     container_name: fle-demo-backend
     ports:
-      - "8080:8080"
+      - "${BACKEND_PORT:-8080}:8080"  # Use BACKEND_PORT from .env, default 8080
     environment:
       MONGODB_URI: ${MONGODB_URI:-mongodb://mongodb:27017}
       MONGODB_DATABASE: ${MONGODB_DATABASE:-fle_demo}
@@ -42,10 +42,10 @@ services:
       SPRING_PROFILES_ACTIVE: ${SPRING_PROFILES_ACTIVE:-docker}
       MONGOCRYPT_SHARED_LIB_PATH: /usr/local/lib/mongo_crypt_v1.so
     volumes:
-      # Mount master key files
-      - ./backend/local_master_key_tenant_alpha.bin:/app/local_master_key_tenant_alpha.bin:ro
-      - ./backend/local_master_key_tenant_beta.bin:/app/local_master_key_tenant_beta.bin:ro
-      - ./backend/local_master_key_tenant_gamma.bin:/app/local_master_key_tenant_gamma.bin:ro
+      # Use a named volume for master keys instead of bind mounts
+      # This allows the application to generate keys on first run
+      # Bind mounts of non-existent files cause Docker to create directories, breaking the app
+      - master_keys:/app/keys
     depends_on:
       mongodb:
         condition: service_healthy
@@ -76,6 +76,8 @@ services:
 
 volumes:
   mongodb_data:
+    driver: local
+  master_keys:
     driver: local
 
 networks:
