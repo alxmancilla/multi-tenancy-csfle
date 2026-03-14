@@ -2,8 +2,13 @@ package com.example.fledemo.service;
 
 import com.example.fledemo.keyvault.TenantKeyService;
 import com.example.fledemo.model.Customer;
+import com.mongodb.MongoException;
+import com.mongodb.client.MongoClient;
+import com.mongodb.client.MongoDatabase;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.CommandLineRunner;
+import org.springframework.core.annotation.Order;
 import org.springframework.stereotype.Component;
 
 import java.util.HashMap;
@@ -11,18 +16,25 @@ import java.util.Map;
 
 @Slf4j
 @Component
+@Order(2) // Run after MongoIndexInitializer (Order 1)
 public class DataSeeder implements CommandLineRunner {
 
     private final TenantKeyService tenantKeyService;
     private final CustomerService customerService;
     private final OrderService orderService;
+    private final MongoClient plainMongoClient;
 
-    public DataSeeder(TenantKeyService tenantKeyService, 
-                     CustomerService customerService, 
-                     OrderService orderService) {
+    @Value("${mongodb.database}")
+    private String databaseName;
+
+    public DataSeeder(TenantKeyService tenantKeyService,
+                     CustomerService customerService,
+                     OrderService orderService,
+                     MongoClient plainMongoClient) {
         this.tenantKeyService = tenantKeyService;
         this.customerService = customerService;
         this.orderService = orderService;
+        this.plainMongoClient = plainMongoClient;
     }
 
     @Override
@@ -42,14 +54,47 @@ public class DataSeeder implements CommandLineRunner {
 
                 String[] customerIds = seedTenantData(tenantId);
                 tenantCustomerIds.put(tenantId, customerIds);
+            } catch (MongoException e) {
+                // Check if this is an HMAC validation failure (master key mismatch)
+                if (e.getMessage() != null && e.getMessage().contains("HMAC validation failure")) {
+                    log.warn("HMAC validation failure detected for tenant {}. This indicates master keys have changed.", tenantId);
+                    log.warn("Clearing all encrypted data and key vault to start fresh...");
+
+                    clearDatabaseAndKeyVault();
+
+                    log.info("Database cleared. Restarting data seeding...");
+                    // Retry seeding after clearing
+                    String[] customerIds = seedTenantData(tenantId);
+                    tenantCustomerIds.put(tenantId, customerIds);
+                } else {
+                    log.error("Failed to seed data for tenant {}: {}", tenantId, e.getMessage());
+                    throw new IllegalStateException("Data seeding failed. See logs above for details.", e);
+                }
             } catch (Exception e) {
                 log.error("Failed to seed data for tenant {}: {}", tenantId, e.getMessage());
-                log.error("This may indicate master key mismatch. Consider clearing MongoDB data with: docker-compose down -v");
                 throw new IllegalStateException("Data seeding failed. See logs above for details.", e);
             }
         }
 
         log.info("Data seeding completed successfully");
+    }
+
+    /**
+     * Clears all collections in the database when HMAC validation fails.
+     * This happens when master keys have changed but old encrypted data still exists.
+     */
+    private void clearDatabaseAndKeyVault() {
+        try {
+            MongoDatabase database = plainMongoClient.getDatabase(databaseName);
+
+            log.info("Dropping database '{}' to clear old encrypted data...", databaseName);
+            database.drop();
+            log.info("Database dropped successfully. New data will be encrypted with current master keys.");
+
+        } catch (Exception e) {
+            log.error("Failed to clear database: {}", e.getMessage());
+            throw new IllegalStateException("Could not clear database after HMAC validation failure", e);
+        }
     }
 
     private String[] seedTenantData(String tenantId) {

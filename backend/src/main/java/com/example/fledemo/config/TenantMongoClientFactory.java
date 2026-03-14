@@ -6,6 +6,7 @@ import com.mongodb.ConnectionString;
 import com.mongodb.MongoClientSettings;
 import com.mongodb.client.MongoClient;
 import com.mongodb.client.MongoClients;
+import com.mongodb.connection.ConnectionPoolSettings;
 import lombok.extern.slf4j.Slf4j;
 import org.bson.BsonBinary;
 import org.bson.BsonDocument;
@@ -14,6 +15,7 @@ import org.springframework.stereotype.Component;
 
 import java.util.HashMap;
 import java.util.Map;
+import java.util.concurrent.TimeUnit;
 
 /**
  * Factory for creating per-tenant MongoDB clients with automatic encryption.
@@ -66,8 +68,16 @@ public class TenantMongoClientFactory {
                 .schemaMap(encryptedFieldsMap)
                 .build();
 
+        // Configure connection pool to prevent exhausting connections with many tenants
+        // maxPoolSize: Maximum connections per tenant client (default: 100)
+        // minPoolSize: Minimum idle connections to maintain (default: 0)
         MongoClientSettings clientSettings = MongoClientSettings.builder()
                 .applyConnectionString(new ConnectionString(mongoUri))
+                .applyToConnectionPoolSettings(builder ->
+                    builder.maxSize(20)  // Limit connections per tenant
+                           .minSize(2)   // Keep some connections warm
+                           .maxWaitTime(10, TimeUnit.SECONDS)
+                )
                 .autoEncryptionSettings(autoEncryptionSettings)
                 .build();
 

@@ -1,3 +1,16 @@
+# ============================================================================
+# MongoDB CSFLE Multi-Tenancy Demo - Application Configuration
+# ============================================================================
+#
+# SECURITY WARNING: This file contains example configuration values.
+# DO NOT commit real credentials to version control!
+#
+# For production:
+# - Use environment variables or external configuration
+# - Store credentials in secure vaults (AWS Secrets Manager, Azure Key Vault, etc.)
+# - Enable security scanning tools to detect exposed credentials
+# ============================================================================
+
 server:
   port: 8080
 
@@ -6,11 +19,18 @@ spring:
     name: fle-demo
 
 mongodb:
-  uri: mongodb+srv://demo:d3m0p4ss@democluster.elz1q.mongodb.net/?appName=FLEDemo
+  # EXAMPLE ONLY - Replace with your MongoDB connection string
+  # Use environment variable: ${MONGODB_URI} or external config
+  uri: mongodb://localhost:27017
   database: fle_demo
   keyvault:
     namespace: fle_demo.__keyVault
   local-master-key-path: ./local_master_key.bin
+
+  # Connection pool settings for multi-tenant scalability
+  connection-pool:
+    max-size: 100
+    min-size: 10
 
 logging:
   level:
