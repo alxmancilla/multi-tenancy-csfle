@@ -1,0 +1,27 @@
+{
+  "bsonType": "object",
+  "encryptMetadata": {
+    "keyId": []
+  },
+  "properties": {
+    "product": {
+      "encrypt": {
+        "bsonType": "string",
+        "algorithm": "AEAD_AES_256_CBC_HMAC_SHA_512-Random"
+      }
+    },
+    "amount": {
+      "encrypt": {
+        "bsonType": "double",
+        "algorithm": "AEAD_AES_256_CBC_HMAC_SHA_512-Random"
+      }
+    },
+    "status": {
+      "encrypt": {
+        "bsonType": "string",
+        "algorithm": "AEAD_AES_256_CBC_HMAC_SHA_512-Random"
+      }
+    }
+  }
+}
+

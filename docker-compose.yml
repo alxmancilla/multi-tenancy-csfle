@@ -39,6 +39,7 @@ services:
       MONGODB_URI: ${MONGODB_URI:-mongodb://mongodb:27017}
       MONGODB_DATABASE: ${MONGODB_DATABASE:-fle_demo}
       MONGODB_KEYVAULT_NAMESPACE: ${MONGODB_KEYVAULT_NAMESPACE:-fle_demo.__keyVault}
+      MONGODB_LOCAL_MASTER_KEY_PATH: /app/keys/local_master_key.bin
       SPRING_PROFILES_ACTIVE: ${SPRING_PROFILES_ACTIVE:-docker}
       MONGOCRYPT_SHARED_LIB_PATH: /usr/local/lib/mongo_crypt_v1.so
     volumes:

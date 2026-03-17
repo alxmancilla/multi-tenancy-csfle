@@ -19,18 +19,31 @@ spring:
     name: fle-demo
 
 mongodb:
-  # EXAMPLE ONLY - Replace with your MongoDB connection string
-  # Use environment variable: ${MONGODB_URI} or external config
-  uri: mongodb://localhost:27017
-  database: fle_demo
+  # MongoDB Connection URI - Use environment variable for Atlas
+  # Local: mongodb://localhost:27017
+  # Docker: mongodb://mongodb:27017
+  # Atlas: mongodb+srv://user:pass@cluster.mongodb.net/?retryWrites=true&w=majority&socketTimeoutMS=60000&connectTimeoutMS=30000&serverSelectionTimeoutMS=30000
+  # Set via: export MONGODB_URI="your-connection-string"
+  # Default changed to localhost for manual setup (use Docker Compose for mongodb:27017)
+  uri: ${MONGODB_URI:mongodb://localhost:27017}
+  database: ${MONGODB_DATABASE:fle_demo}
   keyvault:
-    namespace: fle_demo.__keyVault
-  local-master-key-path: ./local_master_key.bin
+    namespace: ${MONGODB_KEYVAULT_NAMESPACE:fle_demo.__keyVault}
+
+  # Local master key path
+  # Manual setup: ./local_master_key.bin (current directory)
+  # Docker setup: /app/keys/local_master_key.bin (container volume)
+  local-master-key-path: ${MONGODB_LOCAL_MASTER_KEY_PATH:./local_master_key.bin}
 
   # Connection pool settings for multi-tenant scalability
+  # Adjust based on your MongoDB deployment:
+  # - Local MongoDB: max-size: 100
+  # - Atlas M0 (Free): max-size: 20 (500 total connection limit)
+  # - Atlas M10+: max-size: 20-50 (1500+ total connection limit)
+  # With 50 cached clients: 50 × 20 = 1,000 max connections
   connection-pool:
-    max-size: 100
-    min-size: 10
+    max-size: ${MONGODB_POOL_MAX_SIZE:20}
+    min-size: ${MONGODB_POOL_MIN_SIZE:2}
 
 logging:
   level:

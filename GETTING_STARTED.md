@@ -10,6 +10,18 @@ This application demonstrates **MongoDB Client-Side Field Level Encryption (CSFL
 - ✅ Encryption/decryption happens automatically on the client side
 - ✅ MongoDB server never sees plaintext sensitive data
 
+### 🚀 Production-Ready Features
+
+This demo includes enterprise-grade improvements:
+- **📊 Database Indexes**: Optimized multi-tenant queries
+- **🔧 Externalized Schemas**: JSON-based encryption configuration
+- **💾 LRU Client Caching**: Limits active clients to prevent resource exhaustion
+- **🔌 Connection Pooling**: Configured per-tenant connection limits
+- **🔄 Auto-Recovery**: Handles HMAC validation failures gracefully
+- **⚡ Bypass Encryption**: Performance optimization for non-sensitive operations
+
+See the **Production Improvements & Roadmap** section in [README.md](README.md) for details.
+
 ## 🚀 Quick Start (5 Minutes)
 
 ### Step 1: Install Prerequisites

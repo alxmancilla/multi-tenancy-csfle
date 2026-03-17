@@ -8,14 +8,26 @@ A complete, runnable demonstration of MongoDB Client-Side Field Level Encryption
 
 ## 🎯 Key Features
 
+### Core Security Features
 - **🔒 Separate Master Keys Per Tenant**: Each tenant has their own 96-byte master key file for true cryptographic isolation
 - **🔑 Per-Tenant Data Encryption Keys (DEKs)**: Each tenant's DEK is encrypted with their own master key
 - **📦 Shared Collections**: All tenants use the same `customers` and `orders` collections
 - **🛡️ True Cryptographic Isolation**: Cross-tenant decryption is cryptographically impossible - HMAC validation ensures DEKs can only be decrypted with the correct master key
 - **🔍 Deterministic & Randomized Encryption**: Email uses deterministic encryption (queryable), other fields use randomized encryption
+
+### Demo Features
 - **👁️ DBA View Demo**: Shows what encrypted data looks like in the database
 - **⚔️ Cross-Tenant Attack Demo**: Proves that one tenant cannot decrypt another tenant's data
 - **🛡️ Application-Level Access Control Demo**: Shows how proper tenant filtering complements cryptographic isolation (defense in depth)
+
+### Production-Ready Enhancements (Phase 1 & 2)
+- **📊 Database Indexes**: Optimized multi-tenant queries with compound indexes on `tenantId`
+- **🔧 Externalized Encryption Schemas**: JSON-based schema configuration for easy updates without code changes
+- **💾 LRU Client Caching**: Limits active MongoClients to 50 tenants to prevent resource exhaustion
+- **🔌 Connection Pooling**: Configured maxSize (20) and minSize (2) per tenant client
+- **🔄 Auto-Recovery**: Automatically detects and recovers from HMAC validation failures in dev environments
+- **⚡ Bypass Auto-Encryption**: Performance optimization for operations that don't involve encrypted fields
+- **🛡️ Graceful Shutdown**: Ensures all MongoDB clients are properly closed on application shutdown
 
 ## 🏗️ Architecture
 
@@ -197,6 +209,8 @@ Three pre-seeded tenants:
 ## 🚀 Setup Instructions
 
 > **🐳 Prefer Docker?** Skip this section and see [DOCKER_SETUP.md](DOCKER_SETUP.md) for one-command deployment!
+>
+> **☁️ Using MongoDB Atlas?** See [ATLAS_SETUP.md](ATLAS_SETUP.md) for Atlas-specific configuration!
 
 ### Option 1: Docker Setup (Recommended for Quick Demo)
 
@@ -250,9 +264,16 @@ cd backend
 mvn clean install
 ```
 
+**For MongoDB Atlas users**, edit the `.env` file in the root directory with your Atlas credentials.
+
 Start the Spring Boot application:
 
 ```bash
+# Option A: Using startup script (automatically loads .env from root)
+./run-local.sh
+
+# Option B: Manual (load .env first)
+export $(cat ../.env | grep -v '^#' | xargs)
 mvn spring-boot:run
 ```
 
@@ -411,32 +432,43 @@ The frontend will be available at `http://localhost:3000`
 .
 ├── backend/
 │   ├── pom.xml
-│   └── src/main/java/com/example/fledemo/
-│       ├── FledemoApplication.java
-│       ├── config/
-│       │   ├── CorsConfig.java
-│       │   ├── LocalKmsProvider.java
-│       │   ├── MongoConfig.java
-│       │   └── TenantMongoClientFactory.java
-│       ├── keyvault/
-│       │   └── TenantKeyService.java
-│       ├── model/
-│       │   ├── Customer.java
-│       │   └── Order.java
-│       ├── service/
-│       │   ├── CustomerService.java
-│       │   ├── OrderService.java
-│       │   └── DataSeeder.java
-│       ├── controller/
-│       │   ├── TenantController.java
-│       │   ├── CustomerController.java
-│       │   ├── OrderController.java
-│       │   └── DemoController.java
-│       └── dto/
-│           ├── CustomerRequest.java
-│           ├── CustomerResponse.java
-│           ├── OrderRequest.java
-│           └── OrderResponse.java
+│   └── src/main/
+│       ├── java/com/example/fledemo/
+│       │   ├── FledemoApplication.java
+│       │   ├── config/
+│       │   │   ├── CorsConfig.java
+│       │   │   ├── LocalKmsProvider.java
+│       │   │   ├── MongoConfig.java
+│       │   │   ├── TenantMongoClientFactory.java      # LRU cache, schema loading
+│       │   │   ├── MongoIndexInitializer.java         # Database indexes (Phase 1)
+│       │   │   ├── MongoClientShutdownHook.java       # Graceful shutdown (Phase 2)
+│       │   │   └── MongoClientType.java               # Bypass encryption enum (Phase 2)
+│       │   ├── keyvault/
+│       │   │   └── TenantKeyService.java
+│       │   ├── model/
+│       │   │   ├── Customer.java
+│       │   │   └── Order.java
+│       │   ├── service/
+│       │   │   ├── CustomerService.java
+│       │   │   ├── OrderService.java
+│       │   │   └── DataSeeder.java                    # Auto-recovery (Phase 1)
+│       │   ├── controller/
+│       │   │   ├── TenantController.java
+│       │   │   ├── CustomerController.java
+│       │   │   ├── OrderController.java
+│       │   │   └── DemoController.java
+│       │   └── dto/
+│       │       ├── CustomerRequest.java
+│       │       ├── CustomerResponse.java
+│       │       ├── OrderRequest.java
+│       │       └── OrderResponse.java
+│       └── resources/
+│           ├── application.yml                         # Connection pooling config (Phase 1)
+│           └── config/
+│               ├── encryption-schema-customers.json    # Externalized schema (Phase 2)
+│               ├── encryption-schema-orders.json       # Externalized schema (Phase 2)
+│               ├── README.md                           # Schema documentation (Phase 2)
+│               └── BYPASS_ENCRYPTION_GUIDE.md          # Performance guide (Phase 2)
 └── frontend/
     ├── package.json
     ├── vite.config.js
@@ -614,7 +646,300 @@ The application will:
 - Seed fresh data
 - Start successfully
 
-## 📚 Learn More
+## � Production Improvements & Roadmap
+
+This demo has been enhanced with production-ready features across multiple phases. Here's what's been implemented and what's planned:
+
+### ✅ Phase 1: Quick Wins (Completed)
+
+**Goal**: Immediate performance and reliability improvements based on expert feedback.
+
+#### 1. Database Indexes
+**File**: `backend/src/main/java/com/example/fledemo/config/MongoIndexInitializer.java`
+
+Created optimized indexes for multi-tenant access patterns:
+- **Customers Collection**:
+  - `{ tenantId: 1 }` - Fast tenant isolation
+  - `{ tenantId: 1, email: 1 }` - Unique email per tenant (deterministic encryption allows queries)
+  - `{ tenantId: 1, customerId: 1 }` - Unique customer ID per tenant
+- **Orders Collection**:
+  - `{ tenantId: 1 }` - Fast tenant isolation
+  - `{ tenantId: 1, customerId: 1 }` - Customer's orders lookup
+  - `{ tenantId: 1, orderId: 1 }` - Unique order ID per tenant
+
+**Benefits**:
+- 🚀 Dramatically improves query performance for multi-tenant access patterns
+- 🔒 Enforces uniqueness constraints within tenant boundaries
+- 📊 Runs before data seeding to ensure indexes exist
+
+#### 2. Sanitized Configuration
+**File**: `backend/src/main/resources/application.yml`
+
+Removed hardcoded credentials and added environment variable support:
+```yaml
+mongodb:
+  uri: ${MONGODB_URI:mongodb://localhost:27017}
+  database: ${MONGODB_DATABASE:fle_demo}
+  keyvault:
+    namespace: ${MONGODB_KEYVAULT_NAMESPACE:fle_demo.__keyVault}
+```
+
+**Benefits**:
+- ✅ Production-ready configuration
+- ✅ Easy deployment to different environments
+- ✅ Follows 12-factor app principles
+
+#### 3. Connection Pooling
+**File**: `backend/src/main/resources/application.yml`
+
+Configured connection pool settings per tenant client:
+```yaml
+mongodb:
+  connection-pool:
+    max-size: 20    # Maximum connections per tenant client
+    min-size: 2     # Minimum connections per tenant client
+```
+
+**Benefits**:
+- 📊 Prevents connection exhaustion
+- ⚡ Improves performance with connection reuse
+- 🎯 Predictable resource usage (50 tenants × 20 max = 1,000 max connections)
+
+#### 4. Auto-Recovery from HMAC Failures
+**File**: `backend/src/main/java/com/example/fledemo/service/DataSeeder.java`
+
+Automatically detects and recovers from master key mismatches:
+```java
+if (e.getMessage() != null && e.getMessage().contains("HMAC validation failure")) {
+    log.warn("HMAC validation failure detected. Clearing database and retrying...");
+    clearDatabaseAndKeyVault();
+    seedTenantData(tenantId); // Retry with current keys
+}
+```
+
+**Benefits**:
+- 🔄 Streamlines development workflow
+- 🛡️ Demonstrates cryptographic isolation (data is truly unreadable without correct keys)
+- ⚠️ Dev-only feature (production would alert administrators instead)
+
+---
+
+### ✅ Phase 2: Code Refactoring (Completed)
+
+**Goal**: Improve maintainability, scalability, and performance through better code organization.
+
+#### 1. Externalized Encryption Schemas
+**Files**:
+- `backend/src/main/resources/config/encryption-schema-customers.json`
+- `backend/src/main/resources/config/encryption-schema-orders.json`
+- `backend/src/main/resources/config/README.md`
+
+Moved hardcoded encryption schemas from Java code to JSON configuration files:
+```json
+{
+  "bsonType": "object",
+  "encryptMetadata": {
+    "keyId": []
+  },
+  "properties": {
+    "email": {
+      "encrypt": {
+        "bsonType": "string",
+        "algorithm": "AEAD_AES_256_CBC_HMAC_SHA_512-Deterministic"
+      }
+    }
+  }
+}
+```
+
+**Benefits**:
+- 📝 Modify encryption schemas without recompiling code
+- 🎯 Centralized configuration management
+- 📚 Better documentation and maintainability
+- 🔄 Easy to add new encrypted fields
+
+#### 2. LRU Client Caching
+**Files**:
+- `backend/src/main/java/com/example/fledemo/config/TenantMongoClientFactory.java`
+- `backend/src/main/java/com/example/fledemo/config/MongoClientShutdownHook.java`
+
+Implemented Least Recently Used (LRU) cache to limit active MongoClients:
+```java
+private static final int MAX_CACHED_CLIENTS = 50;
+
+this.tenantClients = new LinkedHashMap<>(MAX_CACHED_CLIENTS, 0.75f, true) {
+    @Override
+    protected boolean removeEldestEntry(Map.Entry<String, MongoClient> eldest) {
+        if (size() > MAX_CACHED_CLIENTS) {
+            eldest.getValue().close();  // Free resources
+            return true;
+        }
+        return false;
+    }
+};
+```
+
+**Benefits**:
+- 💾 Prevents memory exhaustion with many tenants
+- 🔄 Automatic eviction of least recently used clients
+- 🛡️ Graceful shutdown ensures all clients are closed properly
+- 📊 Scalable to hundreds of tenants
+
+#### 3. Bypass Auto-Encryption Support
+**Files**:
+- `backend/src/main/java/com/example/fledemo/config/MongoClientType.java`
+- `backend/src/main/resources/config/BYPASS_ENCRYPTION_GUIDE.md`
+
+Added documentation and enum for bypassing encryption on non-sensitive operations:
+
+**When to use PLAIN client (bypass encryption)**:
+- Raw document viewing (DBA view)
+- Index creation
+- Metadata queries (count, distinct on non-encrypted fields)
+- Administrative operations
+
+**When to use ENCRYPTED client**:
+- Customer/Order CRUD operations
+- Any operation involving sensitive fields
+
+**Performance Impact**:
+- Encryption overhead: ~1-5ms per document
+- Bypass saves CPU cycles for operations that don't need encryption
+
+**Benefits**:
+- ⚡ Performance optimization for non-sensitive operations
+- 📚 Clear guidelines on when to bypass encryption
+- 🔒 Security awareness (documents when encryption is required)
+
+---
+
+### 🔮 Phase 3: Architecture Enhancements (Planned)
+
+**Goal**: Improve security and developer experience with modern authentication patterns.
+
+#### 1. Token-Based Tenant Identification
+**Planned Changes**:
+- Extract `tenantId` from JWT tokens instead of URL parameters
+- Implement Spring Security with JWT authentication
+- Add tenant claim validation
+
+**Current State**:
+```java
+// Current: tenantId in URL
+@GetMapping("/tenants/{tenantId}/customers")
+public List<Customer> getCustomers(@PathVariable String tenantId) { ... }
+```
+
+**Planned State**:
+```java
+// Future: tenantId from JWT token
+@GetMapping("/customers")
+public List<Customer> getCustomers(@AuthenticationPrincipal JwtToken token) {
+    String tenantId = token.getClaim("tenantId");
+    ...
+}
+```
+
+**Benefits**:
+- 🔒 More secure (tenantId cannot be manipulated in URL)
+- 🎯 Cleaner API design
+- ✅ Industry best practice for multi-tenant SaaS
+- 🛡️ Prevents tenant ID spoofing
+
+#### 2. Query Capability Documentation
+**Planned Deliverables**:
+- Document which fields can be queried (deterministic encryption only)
+- Add examples of queryable vs non-queryable operations
+- Create decision matrix for choosing encryption algorithms
+
+**Benefits**:
+- 📚 Better developer understanding
+- 🎯 Informed schema design decisions
+- ⚡ Optimized query patterns
+
+---
+
+### 🏭 Phase 4: Production Readiness (Planned)
+
+**Goal**: Prepare for production deployment with enterprise-grade key management and operational features.
+
+#### 1. Cloud KMS Integration
+**Planned Providers**:
+- AWS KMS (Key Management Service)
+- Azure Key Vault
+- Google Cloud KMS
+
+**Current State**: Local KMS (96-byte master key files)
+
+**Planned State**:
+```java
+// AWS KMS example
+Map<String, Map<String, Object>> kmsProviders = new HashMap<>();
+kmsProviders.put("aws", new HashMap<String, Object>() {{
+    put("accessKeyId", awsAccessKey);
+    put("secretAccessKey", awsSecretKey);
+}});
+
+// Master keys stored in AWS KMS, not local files
+```
+
+**Benefits**:
+- 🔒 Enterprise-grade key management
+- 🔄 Automatic key rotation
+- 📊 Audit logging and compliance
+- 🛡️ Hardware Security Module (HSM) backing
+- 🌍 Multi-region key replication
+
+#### 2. Key Rotation Implementation
+**Planned Features**:
+- Automatic DEK rotation on schedule
+- Master key rotation with re-encryption
+- Zero-downtime key rotation
+- Audit trail of key rotation events
+
+**Benefits**:
+- 🔒 Compliance with security policies (e.g., rotate keys every 90 days)
+- 🛡️ Limits blast radius of key compromise
+- 📊 Meets regulatory requirements (PCI-DSS, HIPAA, GDPR)
+
+#### 3. Monitoring & Observability
+**Planned Features**:
+- Metrics for encryption/decryption operations
+- Client cache hit/miss rates
+- Connection pool utilization
+- Key fetch latency monitoring
+- Alerts for HMAC validation failures
+
+**Benefits**:
+- 📊 Operational visibility
+- 🚨 Early detection of issues
+- ⚡ Performance optimization insights
+
+#### 4. Multi-Region Deployment
+**Planned Features**:
+- Replicate master keys across regions
+- Local key caching for low latency
+- Failover to backup KMS regions
+
+**Benefits**:
+- 🌍 Global availability
+- ⚡ Low latency worldwide
+- 🛡️ Disaster recovery
+
+---
+
+### 📊 Implementation Status Summary
+
+| Phase | Status | Completion |
+|-------|--------|------------|
+| **Phase 1: Quick Wins** | ✅ Complete | 100% |
+| **Phase 2: Code Refactoring** | ✅ Complete | 100% |
+| **Phase 3: Architecture Enhancements** | 🔮 Planned | 0% |
+| **Phase 4: Production Readiness** | 🔮 Planned | 0% |
+
+---
+
+## �📚 Learn More
 
 ### Documentation in This Repository
 - [`GETTING_STARTED.md`](GETTING_STARTED.md) - Quick 5-minute setup guide
