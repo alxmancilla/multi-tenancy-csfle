@@ -4,13 +4,19 @@ import com.example.fledemo.config.LocalKmsProvider;
 import com.mongodb.ClientEncryptionSettings;
 import com.mongodb.ConnectionString;
 import com.mongodb.MongoClientSettings;
+import com.mongodb.MongoException;
 import com.mongodb.client.MongoClient;
+import com.mongodb.client.model.Filters;
+import com.mongodb.client.model.IndexOptions;
+import com.mongodb.client.model.Indexes;
 import com.mongodb.client.model.vault.DataKeyOptions;
+import com.mongodb.client.model.vault.EncryptOptions;
 import com.mongodb.client.vault.ClientEncryption;
 import com.mongodb.client.vault.ClientEncryptions;
 import lombok.extern.slf4j.Slf4j;
 import org.bson.BsonBinary;
 import org.bson.BsonDocument;
+import org.bson.BsonString;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
@@ -50,6 +56,8 @@ public class TenantKeyService {
     public void initializeTenantKeys() {
         log.info("Initializing Data Encryption Keys for all tenants with separate master keys...");
 
+        ensureKeyVaultIndex();
+
         // Create DEKs for each tenant using their specific master key
         for (String tenantId : TENANT_IDS) {
             BsonBinary dataKeyId = getOrCreateDataKeyForTenant(tenantId);
@@ -58,6 +66,23 @@ public class TenantKeyService {
         }
 
         log.info("All tenant Data Encryption Keys initialized successfully with separate master keys");
+    }
+
+    /**
+     * Creates the unique partial index on keyAltNames required for the key vault collection,
+     * so concurrent startups cannot create duplicate DEKs for the same tenant.
+     */
+    private void ensureKeyVaultIndex() {
+        String[] namespace = keyVaultNamespace.split("\\.", 2);
+        plainMongoClient.getDatabase(namespace[0])
+                .getCollection(namespace[1])
+                .createIndex(
+                        Indexes.ascending("keyAltNames"),
+                        new IndexOptions()
+                                .name("keyAltNames_1")
+                                .unique(true)
+                                .partialFilterExpression(Filters.exists("keyAltNames")));
+        log.info("Ensured unique index on {}.keyAltNames", keyVaultNamespace);
     }
 
     private BsonBinary getOrCreateDataKeyForTenant(String tenantId) {
@@ -77,6 +102,7 @@ public class TenantKeyService {
             if (existingKey != null) {
                 BsonBinary keyId = existingKey.getBinary("_id");
                 log.info("Found existing DEK for tenant '{}': {}", tenantId, keyId);
+                verifyDataKeyMatchesMasterKey(clientEncryption, tenantId, keyId);
                 return keyId;
             }
 
@@ -89,6 +115,23 @@ public class TenantKeyService {
             log.info("Created new DEK for tenant '{}': {}", tenantId, dataKeyId);
 
             return dataKeyId;
+        }
+    }
+
+    /**
+     * Fails fast if an existing DEK cannot be decrypted with the tenant's current master key
+     * (e.g. the master key file was regenerated). Data is never dropped automatically.
+     */
+    private void verifyDataKeyMatchesMasterKey(ClientEncryption clientEncryption, String tenantId, BsonBinary keyId) {
+        try {
+            clientEncryption.encrypt(new BsonString("dek-verification"),
+                    new EncryptOptions("AEAD_AES_256_CBC_HMAC_SHA_512-Random").keyId(keyId));
+        } catch (MongoException e) {
+            throw new IllegalStateException(
+                    "DEK for tenant '" + tenantId + "' cannot be decrypted with its current master key. " +
+                    "The master key file likely changed since the DEK was created. Restore the original " +
+                    "master key file, or reset the demo by dropping the database (including the key vault) " +
+                    "and deleting local_master_key*.bin. See README 'HMAC validation failure error'.", e);
         }
     }
 

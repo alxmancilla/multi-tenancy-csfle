@@ -2,6 +2,9 @@
 local_master_key.bin
 *.bin
 
+# mongocryptd runtime file
+mongocryptd.pid
+
 # Java / Maven
 backend/target/
 backend/.mvn/

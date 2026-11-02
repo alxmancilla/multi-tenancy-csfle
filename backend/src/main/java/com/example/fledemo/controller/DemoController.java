@@ -113,7 +113,9 @@ public class DemoController {
                             "3. The attacker's client only has access to their own master key\n" +
                             "4. Without the victim's master key, the attacker cannot decrypt the victim's DEK\n" +
                             "5. Without the victim's DEK, the attacker cannot decrypt the victim's data\n\n" +
-                            "Encrypted fields remain as Binary data, proving true cryptographic isolation!");
+                            "Encrypted fields remain as Binary data. Note: in this demo all master keys are " +
+                            "loaded by the same application process, so isolation holds between tenant clients, " +
+                            "not against a compromise of the application itself.");
                     response.put("fieldsStillEncrypted", true);
                 } else if (nameField != null && nameField instanceof String) {
                     // Fields were decrypted - this should only happen if same tenant
@@ -138,14 +140,32 @@ public class DemoController {
             }
             
         } catch (Exception e) {
+            boolean isolationEnforced = isKeyDecryptionFailure(e);
             log.error("Cross-tenant decryption attempt failed with exception", e);
             response.put("success", false);
+            response.put("isolationEnforced", isolationEnforced);
             response.put("error", e.getClass().getSimpleName() + ": " + e.getMessage());
-            response.put("message", "✅ Cryptographic isolation enforced! The attacker cannot decrypt the victim's data " +
-                    "because they don't have access to the victim's master key.");
+            if (isolationEnforced) {
+                response.put("message", "✅ Cryptographic isolation enforced! The attacker cannot decrypt the victim's data " +
+                        "because their client is not configured with the victim's master key.");
+            }
         }
-        
+
         return ResponseEntity.ok(response);
+    }
+
+    /**
+     * True only when the failure comes from libmongocrypt being unable to decrypt the DEK,
+     * so unrelated errors (network, configuration) are not reported as isolation.
+     */
+    private boolean isKeyDecryptionFailure(Throwable throwable) {
+        for (Throwable t = throwable; t != null; t = t.getCause()) {
+            if (t.getClass().getSimpleName().equals("MongoCryptException")
+                    || (t.getMessage() != null && t.getMessage().contains("HMAC validation failure"))) {
+                return true;
+            }
+        }
+        return false;
     }
 
     @PostMapping("/application-level-access-control")

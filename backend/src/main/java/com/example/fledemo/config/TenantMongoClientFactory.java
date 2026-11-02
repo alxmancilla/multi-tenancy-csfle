@@ -19,6 +19,10 @@ import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.Map;
+import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 
 /**
@@ -29,28 +33,36 @@ import java.util.concurrent.TimeUnit;
  *
  * Features:
  * - LRU cache to limit active clients in memory (prevents resource exhaustion)
- * - Automatic client eviction when cache is full
+ * - Automatic client eviction when cache is full (evicted clients are closed after a delay
+ *   so in-flight operations on a previously returned client can complete)
  * - Encryption schemas loaded from JSON configuration files
  * - Connection pooling per client (maxSize: 20, minSize: 2)
  *
- * The MongoDB driver automatically loads the Automatic Encryption Shared Library
- * (libmongocrypt) from standard system locations:
- * - macOS/Linux: /usr/local/lib/mongo_crypt_v1.{dylib|so}
- * - Windows: C:\Windows\System32\mongo_crypt_v1.dll
- *
- * Alternative: Set MONGOCRYPT_SHARED_LIB_PATH environment variable to specify
- * a custom location for the shared library.
+ * The Automatic Encryption Shared Library (crypt_shared) is required: the client is
+ * configured with cryptSharedLibRequired=true so the driver fails fast instead of
+ * silently falling back to spawning mongocryptd.
+ * - If mongodb.crypt-shared-lib-path (MONGOCRYPT_SHARED_LIB_PATH) is set, it is passed
+ *   to the driver as cryptSharedLibPath.
+ * - Otherwise the driver searches the system library path
+ *   (e.g. /usr/local/lib/mongo_crypt_v1.{dylib|so}).
  */
 @Slf4j
 @Component
 public class TenantMongoClientFactory {
 
     private static final int MAX_CACHED_CLIENTS = 50; // Maximum number of active clients in memory
+    private static final long EVICTED_CLIENT_CLOSE_DELAY_SECONDS = 60; // Grace period for in-flight operations
 
     private final LocalKmsProvider localKmsProvider;
     private final TenantKeyService tenantKeyService;
     private final Map<String, MongoClient> tenantClients;
     private final Map<String, BsonDocument> schemaCache = new HashMap<>();
+    private final Set<MongoClient> pendingCloseClients = ConcurrentHashMap.newKeySet();
+    private final ScheduledExecutorService evictionExecutor = Executors.newSingleThreadScheduledExecutor(runnable -> {
+        Thread thread = new Thread(runnable, "mongo-client-eviction");
+        thread.setDaemon(true);
+        return thread;
+    });
 
     @Value("${mongodb.uri}")
     private String mongoUri;
@@ -60,6 +72,9 @@ public class TenantMongoClientFactory {
 
     @Value("${mongodb.database}")
     private String databaseName;
+
+    @Value("${mongodb.crypt-shared-lib-path:}")
+    private String cryptSharedLibPath;
 
     public TenantMongoClientFactory(LocalKmsProvider localKmsProvider, TenantKeyService tenantKeyService) {
         this.localKmsProvider = localKmsProvider;
@@ -71,12 +86,7 @@ public class TenantMongoClientFactory {
             protected boolean removeEldestEntry(Map.Entry<String, MongoClient> eldest) {
                 if (size() > MAX_CACHED_CLIENTS) {
                     log.info("LRU cache full. Evicting client for tenant: {}", eldest.getKey());
-                    // Close the evicted client to free resources
-                    try {
-                        eldest.getValue().close();
-                    } catch (Exception e) {
-                        log.warn("Error closing evicted client for tenant {}: {}", eldest.getKey(), e.getMessage());
-                    }
+                    scheduleClose(eldest.getKey(), eldest.getValue());
                     return true;
                 }
                 return false;
@@ -126,6 +136,15 @@ public class TenantMongoClientFactory {
     }
 
     /**
+     * Returns copies of the loaded encryption schemas, keyed by collection name.
+     */
+    public Map<String, BsonDocument> getEncryptionSchemas() {
+        Map<String, BsonDocument> copies = new HashMap<>();
+        schemaCache.forEach((collectionName, schema) -> copies.put(collectionName, schema.clone()));
+        return copies;
+    }
+
+    /**
      * Returns the number of currently cached MongoClients.
      */
     public int getCachedClientCount() {
@@ -148,7 +167,36 @@ public class TenantMongoClientFactory {
         }
 
         tenantClients.clear();
+
+        evictionExecutor.shutdownNow();
+        for (MongoClient pendingClient : pendingCloseClients) {
+            closeQuietly("evicted", pendingClient);
+        }
+        pendingCloseClients.clear();
+
         log.info("All MongoClients closed successfully");
+    }
+
+    /**
+     * Closes an evicted client after a grace period instead of immediately, because callers
+     * may still be using a client previously returned by getClientForTenant.
+     */
+    private void scheduleClose(String tenantId, MongoClient client) {
+        pendingCloseClients.add(client);
+        evictionExecutor.schedule(() -> {
+            if (pendingCloseClients.remove(client)) {
+                closeQuietly(tenantId, client);
+            }
+        }, EVICTED_CLIENT_CLOSE_DELAY_SECONDS, TimeUnit.SECONDS);
+    }
+
+    private void closeQuietly(String tenantId, MongoClient client) {
+        try {
+            client.close();
+            log.debug("Closed evicted client for tenant: {}", tenantId);
+        } catch (Exception e) {
+            log.warn("Error closing evicted client for tenant {}: {}", tenantId, e.getMessage());
+        }
     }
 
     private MongoClient createClientForTenant(String tenantId) {
@@ -163,6 +211,7 @@ public class TenantMongoClientFactory {
                 .keyVaultNamespace(keyVaultNamespace)
                 .kmsProviders(localKmsProvider.getKmsProvidersForTenant(tenantId))
                 .schemaMap(encryptedFieldsMap)
+                .extraOptions(buildCryptSharedLibOptions())
                 .build();
 
         // Configure connection pool to prevent exhausting connections with many tenants
@@ -182,6 +231,18 @@ public class TenantMongoClientFactory {
         log.info("Created encrypted MongoClient for tenant: {} with cryptographic isolation", tenantId);
 
         return client;
+    }
+
+    /**
+     * Requires crypt_shared so the driver never falls back to spawning mongocryptd.
+     */
+    private Map<String, Object> buildCryptSharedLibOptions() {
+        Map<String, Object> extraOptions = new HashMap<>();
+        extraOptions.put("cryptSharedLibRequired", true);
+        if (cryptSharedLibPath != null && !cryptSharedLibPath.isBlank()) {
+            extraOptions.put("cryptSharedLibPath", cryptSharedLibPath);
+        }
+        return extraOptions;
     }
 
     /**

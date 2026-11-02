@@ -3,18 +3,28 @@ package com.example.fledemo.config;
 import com.mongodb.client.MongoClient;
 import com.mongodb.client.MongoCollection;
 import com.mongodb.client.MongoDatabase;
+import com.mongodb.client.model.CreateCollectionOptions;
 import com.mongodb.client.model.IndexOptions;
 import com.mongodb.client.model.Indexes;
+import com.mongodb.client.model.ValidationAction;
+import com.mongodb.client.model.ValidationLevel;
+import com.mongodb.client.model.ValidationOptions;
 import lombok.extern.slf4j.Slf4j;
+import org.bson.BsonDocument;
 import org.bson.Document;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.core.annotation.Order;
 import org.springframework.stereotype.Component;
 
+import java.util.ArrayList;
+
 /**
- * Initializes MongoDB indexes for multi-tenant collections.
- * 
+ * Initializes MongoDB indexes and server-side encryption validators for multi-tenant collections.
+ *
+ * Applies a $jsonSchema validator derived from the encryption schema files so the server
+ * rejects documents whose sensitive fields are not encrypted (e.g. writes from a plain client).
+ *
  * Creates indexes to optimize query performance for tenant-isolated data access.
  * Runs before DataSeeder to ensure indexes exist before data insertion.
  * 
@@ -33,24 +43,53 @@ import org.springframework.stereotype.Component;
 public class MongoIndexInitializer implements CommandLineRunner {
 
     private final MongoClient plainMongoClient;
+    private final TenantMongoClientFactory tenantMongoClientFactory;
 
     @Value("${mongodb.database}")
     private String databaseName;
 
-    public MongoIndexInitializer(MongoClient plainMongoClient) {
+    public MongoIndexInitializer(MongoClient plainMongoClient, TenantMongoClientFactory tenantMongoClientFactory) {
         this.plainMongoClient = plainMongoClient;
+        this.tenantMongoClientFactory = tenantMongoClientFactory;
     }
 
     @Override
     public void run(String... args) {
         log.info("Initializing MongoDB indexes for multi-tenant collections...");
-        
+
         MongoDatabase database = plainMongoClient.getDatabase(databaseName);
-        
+
+        tenantMongoClientFactory.getEncryptionSchemas()
+                .forEach((collectionName, schema) -> applyEncryptionValidator(database, collectionName, schema));
+
         createCustomerIndexes(database);
         createOrderIndexes(database);
         
         log.info("MongoDB indexes initialized successfully");
+    }
+
+    /**
+     * Applies a server-side $jsonSchema validator requiring encrypted fields to be stored as
+     * encrypted BinData. keyId is omitted because each tenant uses a different DEK.
+     */
+    private void applyEncryptionValidator(MongoDatabase database, String collectionName, BsonDocument schema) {
+        schema.remove("encryptMetadata");
+        BsonDocument validator = new BsonDocument("$jsonSchema", schema);
+
+        boolean exists = database.listCollectionNames().into(new ArrayList<>()).contains(collectionName);
+        if (exists) {
+            database.runCommand(new Document("collMod", collectionName)
+                    .append("validator", validator)
+                    .append("validationLevel", "strict")
+                    .append("validationAction", "error"));
+        } else {
+            database.createCollection(collectionName, new CreateCollectionOptions()
+                    .validationOptions(new ValidationOptions()
+                            .validator(validator)
+                            .validationLevel(ValidationLevel.STRICT)
+                            .validationAction(ValidationAction.ERROR)));
+        }
+        log.info("Applied encryption validator on '{}' collection", collectionName);
     }
 
     private void createCustomerIndexes(MongoDatabase database) {

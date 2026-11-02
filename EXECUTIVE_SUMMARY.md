@@ -79,7 +79,7 @@ This demonstration showcases **MongoDB Client-Side Field Level Encryption (CSFLE
 - **Externalized Schemas:** JSON-based encryption configuration
 - **LRU Client Caching:** Limits active clients to 50 tenants
 - **Connection Pooling:** Max 20 connections per tenant client
-- **Auto-Recovery:** Handles HMAC validation failures in dev environments
+- **Fail-Fast Key Verification:** Detects master key / DEK mismatches at startup without dropping data
 - **Bypass Encryption:** Performance optimization for non-sensitive operations
 
 ---

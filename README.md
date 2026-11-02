@@ -25,7 +25,8 @@ A complete, runnable demonstration of MongoDB Client-Side Field Level Encryption
 - **🔧 Externalized Encryption Schemas**: JSON-based schema configuration for easy updates without code changes
 - **💾 LRU Client Caching**: Limits active MongoClients to 50 tenants to prevent resource exhaustion
 - **🔌 Connection Pooling**: Configured maxSize (20) and minSize (2) per tenant client
-- **🔄 Auto-Recovery**: Automatically detects and recovers from HMAC validation failures in dev environments
+- **Fail-Fast Key Verification**: Detects master key / DEK mismatches at startup and stops with clear instructions (data is never dropped automatically)
+- **🧱 Server-Side Encryption Enforcement**: `$jsonSchema` validators reject unencrypted writes to sensitive fields
 - **⚡ Bypass Auto-Encryption**: Performance optimization for operations that don't involve encrypted fields
 - **🛡️ Graceful Shutdown**: Ensures all MongoDB clients are properly closed on application shutdown
 
@@ -201,10 +202,14 @@ Three pre-seeded tenants:
 
    **Alternative: Specify Custom Path**
 
-   If you place the library in a custom location, you can specify it via environment variable:
+   If you place the library in a custom location, you can specify it via environment variable
+   (passed to the driver as `cryptSharedLibPath`):
    ```bash
    export MONGOCRYPT_SHARED_LIB_PATH=/path/to/mongo_crypt_v1.dylib
    ```
+
+   The application sets `cryptSharedLibRequired=true`, so it fails at startup if the library
+   cannot be loaded instead of silently falling back to spawning `mongocryptd`.
 
 ## 🚀 Setup Instructions
 
@@ -426,6 +431,11 @@ The frontend will be available at `http://localhost:3000`
    - **Layer 3**: Database access controls (not shown in this demo)
    - **All layers work together**: Encryption protects field values, filtering prevents document access
 
+9. **Scope of Isolation (Demo Limitation)**:
+   - This demo loads every tenant's master key into the same application process
+   - Isolation holds between tenant clients, not against a compromise of the application itself
+   - In production, use a KMS with per-tenant keys and access policies so the application only obtains a tenant's key when serving that tenant
+
 ## 📁 Project Structure
 
 ```
@@ -451,7 +461,7 @@ The frontend will be available at `http://localhost:3000`
 │       │   ├── service/
 │       │   │   ├── CustomerService.java
 │       │   │   ├── OrderService.java
-│       │   │   └── DataSeeder.java                    # Auto-recovery (Phase 1)
+│       │   │   └── DataSeeder.java
 │       │   ├── controller/
 │       │   │   ├── TenantController.java
 │       │   │   ├── CustomerController.java
@@ -610,13 +620,13 @@ shasum local_master_key*.bin
   ```
 
 ### HMAC validation failure error
-If you see `HMAC validation failure` error when starting the application:
+If the application stops at startup with `DEK for tenant '...' cannot be decrypted with its current master key` (caused by `HMAC validation failure`):
 
 **This is actually a GOOD sign!** It means the separate master keys are working correctly.
 
 **Cause**: Old DEKs in the key vault were encrypted with a different master key (or old shared master key).
 
-**Solution**: Clean up the database and restart:
+**Solution**: Restore the original master key files if you still have them. Otherwise, reset the demo (this permanently deletes the encrypted data):
 
 1. **Delete old collections** (using MongoDB Compass, Atlas UI, or mongosh):
    ```bash
@@ -705,22 +715,31 @@ mongodb:
 - ⚡ Improves performance with connection reuse
 - 🎯 Predictable resource usage (50 tenants × 20 max = 1,000 max connections)
 
-#### 4. Auto-Recovery from HMAC Failures
-**File**: `backend/src/main/java/com/example/fledemo/service/DataSeeder.java`
+#### 4. Fail-Fast Key Verification
+**File**: `backend/src/main/java/com/example/fledemo/keyvault/TenantKeyService.java`
 
-Automatically detects and recovers from master key mismatches:
+At startup, each existing DEK is verified against its tenant's current master key. On mismatch
+(`HMAC validation failure`), the application stops with instructions instead of dropping data:
 ```java
-if (e.getMessage() != null && e.getMessage().contains("HMAC validation failure")) {
-    log.warn("HMAC validation failure detected. Clearing database and retrying...");
-    clearDatabaseAndKeyVault();
-    seedTenantData(tenantId); // Retry with current keys
-}
+clientEncryption.encrypt(new BsonString("dek-verification"),
+        new EncryptOptions("AEAD_AES_256_CBC_HMAC_SHA_512-Random").keyId(keyId));
 ```
 
 **Benefits**:
-- 🔄 Streamlines development workflow
-- 🛡️ Demonstrates cryptographic isolation (data is truly unreadable without correct keys)
-- ⚠️ Dev-only feature (production would alert administrators instead)
+- Never deletes encrypted data automatically
+- Surfaces master key mismatches before any request is served
+
+#### 5. Key Vault Unique Index
+**File**: `backend/src/main/java/com/example/fledemo/keyvault/TenantKeyService.java`
+
+Creates the unique partial index on `__keyVault.keyAltNames` required by MongoDB, so concurrent
+startups cannot create duplicate DEKs for the same tenant.
+
+#### 6. Server-Side Encryption Validators
+**File**: `backend/src/main/java/com/example/fledemo/config/MongoIndexInitializer.java`
+
+Applies the encryption schemas (without `keyId`) as `$jsonSchema` validators on `customers` and
+`orders`, so the server rejects documents whose sensitive fields are not encrypted.
 
 ---
 
@@ -771,7 +790,7 @@ this.tenantClients = new LinkedHashMap<>(MAX_CACHED_CLIENTS, 0.75f, true) {
     @Override
     protected boolean removeEldestEntry(Map.Entry<String, MongoClient> eldest) {
         if (size() > MAX_CACHED_CLIENTS) {
-            eldest.getValue().close();  // Free resources
+            scheduleClose(eldest.getKey(), eldest.getValue());  // Close after a grace period
             return true;
         }
         return false;
@@ -781,7 +800,7 @@ this.tenantClients = new LinkedHashMap<>(MAX_CACHED_CLIENTS, 0.75f, true) {
 
 **Benefits**:
 - 💾 Prevents memory exhaustion with many tenants
-- 🔄 Automatic eviction of least recently used clients
+- 🔄 Automatic eviction of least recently used clients (closed after 60s so in-flight operations complete)
 - 🛡️ Graceful shutdown ensures all clients are closed properly
 - 📊 Scalable to hundreds of tenants
 

@@ -2,17 +2,14 @@ package com.example.fledemo.service;
 
 import com.example.fledemo.keyvault.TenantKeyService;
 import com.example.fledemo.model.Customer;
-import com.mongodb.MongoException;
 import com.mongodb.client.MongoClient;
-import com.mongodb.client.MongoDatabase;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.core.annotation.Order;
 import org.springframework.stereotype.Component;
 
-import java.util.HashMap;
-import java.util.Map;
+import static com.mongodb.client.model.Filters.eq;
 
 @Slf4j
 @Component
@@ -41,35 +38,18 @@ public class DataSeeder implements CommandLineRunner {
     public void run(String... args) {
         log.info("Starting data seeding...");
 
-        Map<String, String[]> tenantCustomerIds = new HashMap<>();
-
         for (String tenantId : tenantKeyService.getAllTenantIds()) {
             try {
-                // Check if data already exists for this tenant
-                long existingCustomers = customerService.getCustomersByTenant(tenantId).size();
+                // Check if data already exists for this tenant (tenantId is plaintext, no decryption needed)
+                long existingCustomers = plainMongoClient.getDatabase(databaseName)
+                        .getCollection("customers")
+                        .countDocuments(eq("tenantId", tenantId));
                 if (existingCustomers > 0) {
                     log.info("Tenant {} already has {} customers, skipping seeding", tenantId, existingCustomers);
                     continue;
                 }
 
-                String[] customerIds = seedTenantData(tenantId);
-                tenantCustomerIds.put(tenantId, customerIds);
-            } catch (MongoException e) {
-                // Check if this is an HMAC validation failure (master key mismatch)
-                if (e.getMessage() != null && e.getMessage().contains("HMAC validation failure")) {
-                    log.warn("HMAC validation failure detected for tenant {}. This indicates master keys have changed.", tenantId);
-                    log.warn("Clearing all encrypted data and key vault to start fresh...");
-
-                    clearDatabaseAndKeyVault();
-
-                    log.info("Database cleared. Restarting data seeding...");
-                    // Retry seeding after clearing
-                    String[] customerIds = seedTenantData(tenantId);
-                    tenantCustomerIds.put(tenantId, customerIds);
-                } else {
-                    log.error("Failed to seed data for tenant {}: {}", tenantId, e.getMessage());
-                    throw new IllegalStateException("Data seeding failed. See logs above for details.", e);
-                }
+                seedTenantData(tenantId);
             } catch (Exception e) {
                 log.error("Failed to seed data for tenant {}: {}", tenantId, e.getMessage());
                 throw new IllegalStateException("Data seeding failed. See logs above for details.", e);
@@ -77,24 +57,6 @@ public class DataSeeder implements CommandLineRunner {
         }
 
         log.info("Data seeding completed successfully");
-    }
-
-    /**
-     * Clears all collections in the database when HMAC validation fails.
-     * This happens when master keys have changed but old encrypted data still exists.
-     */
-    private void clearDatabaseAndKeyVault() {
-        try {
-            MongoDatabase database = plainMongoClient.getDatabase(databaseName);
-
-            log.info("Dropping database '{}' to clear old encrypted data...", databaseName);
-            database.drop();
-            log.info("Database dropped successfully. New data will be encrypted with current master keys.");
-
-        } catch (Exception e) {
-            log.error("Failed to clear database: {}", e.getMessage());
-            throw new IllegalStateException("Could not clear database after HMAC validation failure", e);
-        }
     }
 
     private String[] seedTenantData(String tenantId) {

@@ -87,7 +87,16 @@ function CrossTenantPanel({ tenants }) {
             <strong>Attack Scenario:</strong> {attackerTenant} attempting to decrypt {victimTenant}'s data
           </div>
 
-          {result.error && (
+          {result.error && !result.isolationEnforced && (
+            <div className="error" style={{ marginTop: '15px' }}>
+              <strong>⚠️ Attack simulation could not complete</strong>
+              <p style={{ marginTop: '10px' }}>
+                The error is unrelated to key decryption, so it does not demonstrate isolation: <code>{result.error}</code>
+              </p>
+            </div>
+          )}
+
+          {result.error && result.isolationEnforced && (
             <div className="success" style={{ marginTop: '15px' }}>
               <strong>✅ Cryptographic Isolation Enforced!</strong>
               <p style={{ marginTop: '10px' }}>
@@ -187,6 +196,7 @@ function CrossTenantPanel({ tenants }) {
               <li><strong>✅ Each tenant has its own Data Encryption Key (DEK)</strong> - encrypted with their master key</li>
               <li><strong>✅ Documents are encrypted with the tenant's specific DEK</strong> - ensuring data isolation</li>
               <li><strong>✅ Cross-tenant decryption is cryptographically impossible</strong> - without the victim's master key</li>
+              <li><strong>⚠️ Scope of isolation</strong> - this demo loads all master keys in one process; isolation holds between tenant clients, not against a compromised application</li>
               <li><strong>🔒 CSFLE protects data at rest and in transit</strong> - encrypted before leaving the application</li>
               <li><strong>🔒 Defense in depth</strong> - combine CSFLE with application-level access control</li>
               <li><strong>💡 Production recommendation</strong> - use cloud KMS (AWS KMS, Azure Key Vault, GCP Cloud KMS) with per-tenant keys</li>

@@ -35,6 +35,11 @@ mongodb:
   # Docker setup: /app/keys/local_master_key.bin (container volume)
   local-master-key-path: ${MONGODB_LOCAL_MASTER_KEY_PATH:./local_master_key.bin}
 
+  # Automatic Encryption Shared Library (crypt_shared) path
+  # Empty: the driver searches the system library path (e.g. /usr/local/lib)
+  # The library is required; the app fails at startup if it cannot be loaded
+  crypt-shared-lib-path: ${MONGOCRYPT_SHARED_LIB_PATH:}
+
   # Connection pool settings for multi-tenant scalability
   # Adjust based on your MongoDB deployment:
   # - Local MongoDB: max-size: 100
