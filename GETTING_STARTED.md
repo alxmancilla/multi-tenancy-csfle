@@ -31,7 +31,7 @@ See the **Production Improvements & Roadmap** section in [README.md](README.md) 
 java -version    # Need 21+
 mvn -version     # Need 3.6+
 node --version   # Need 18+
-mongod --version # Need 8.0
+mongod --version # Demo targets 9.0
 ```
 
 **Or use Docker** (recommended for easy setup):
@@ -51,22 +51,22 @@ See [DOCKER_SETUP.md](DOCKER_SETUP.md) for full Docker instructions.
 
 **macOS (Intel):**
 ```bash
-curl -O https://downloads.mongodb.com/osx/mongo_crypt_shared_v1-macos-x86_64-enterprise-8.0.3.tgz
-tar -xvf mongo_crypt_shared_v1-macos-x86_64-enterprise-8.0.3.tgz
+curl -O https://downloads.mongodb.com/osx/mongo_crypt_shared_v1-macos-x86_64-enterprise-9.0.4.tgz
+tar -xvf mongo_crypt_shared_v1-macos-x86_64-enterprise-9.0.4.tgz
 sudo cp lib/mongo_crypt_v1.dylib /usr/local/lib/
 ```
 
 **macOS (Apple Silicon):**
 ```bash
-curl -O https://downloads.mongodb.com/osx/mongo_crypt_shared_v1-macos-arm64-enterprise-8.0.3.tgz
-tar -xvf mongo_crypt_shared_v1-macos-arm64-enterprise-8.0.3.tgz
+curl -O https://downloads.mongodb.com/osx/mongo_crypt_shared_v1-macos-arm64-enterprise-9.0.4.tgz
+tar -xvf mongo_crypt_shared_v1-macos-arm64-enterprise-9.0.4.tgz
 sudo cp lib/mongo_crypt_v1.dylib /usr/local/lib/
 ```
 
 **Linux (Ubuntu):**
 ```bash
-curl -O https://downloads.mongodb.com/linux/mongo_crypt_shared_v1-ubuntu2204-x86_64-enterprise-8.0.3.tgz
-tar -xvf mongo_crypt_shared_v1-ubuntu2204-x86_64-enterprise-8.0.3.tgz
+curl -O https://downloads.mongodb.com/linux/mongo_crypt_shared_v1-linux-x86_64-enterprise-ubuntu2204-9.0.4.tgz
+tar -xvf mongo_crypt_shared_v1-linux-x86_64-enterprise-ubuntu2204-9.0.4.tgz
 sudo cp lib/mongo_crypt_v1.so /usr/local/lib/
 ```
 
@@ -214,7 +214,7 @@ curl http://localhost:8080/api/v1/tenants
 └─────────────────┬───────────────────┘
                   │ Encrypted Data
 ┌─────────────────▼───────────────────┐
-│   MongoDB 8.0                       │
+│   MongoDB 9.0                       │
 │   ├─ customers (encrypted)          │
 │   ├─ orders (encrypted)             │
 │   └─ __keyVault (DEKs)              │

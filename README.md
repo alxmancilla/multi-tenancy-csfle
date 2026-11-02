@@ -78,8 +78,8 @@ This demo implements **Separate Master Keys Per Tenant** for true cryptographic 
 
 - **Backend**: Java 21+, Spring Boot 3.x
 - **Frontend**: React 18+ with Vite
-- **Database**: MongoDB 8.0
-- **MongoDB Driver**: mongodb-driver-sync 5.2.1 with CSFLE support
+- **Database**: MongoDB 9.0 (Docker image pinned to 9.0.4)
+- **MongoDB Driver**: mongodb-driver-sync and mongodb-crypt 5.12.0 with CSFLE support
 - **Build Tool**: Maven
 - **Key Provider**: Local KMS (separate 96-byte master key per tenant for demo purposes)
 
@@ -134,7 +134,7 @@ Three pre-seeded tenants:
    npm --version
    ```
 
-4. **MongoDB 8.0**
+4. **MongoDB 9.0**
    ```bash
    mongod --version
    ```
@@ -143,7 +143,7 @@ Three pre-seeded tenants:
 
    **This is critical!** The application will not work without this library.
 
-   The MongoDB driver requires the Automatic Encryption Shared Library for CSFLE. This is the modern replacement for `mongocryptd`.
+   The demo uses Automatic Encryption Shared Library 9.0.4 for CSFLE. This replaces `mongocryptd`, which is deprecated in MongoDB 9.0.
 
    **Download and Install:**
 
@@ -152,10 +152,10 @@ Three pre-seeded tenants:
    **For macOS (Intel):**
    ```bash
    # Download the library
-   curl -O https://downloads.mongodb.com/osx/mongo_crypt_shared_v1-macos-x86_64-enterprise-8.0.3.tgz
+   curl -O https://downloads.mongodb.com/osx/mongo_crypt_shared_v1-macos-x86_64-enterprise-9.0.4.tgz
 
    # Extract
-   tar -xvf mongo_crypt_shared_v1-macos-x86_64-enterprise-8.0.3.tgz
+   tar -xvf mongo_crypt_shared_v1-macos-x86_64-enterprise-9.0.4.tgz
 
    # Copy to a standard location
    sudo cp lib/mongo_crypt_v1.dylib /usr/local/lib/
@@ -164,10 +164,10 @@ Three pre-seeded tenants:
    **For macOS (Apple Silicon/ARM):**
    ```bash
    # Download the library
-   curl -O https://downloads.mongodb.com/osx/mongo_crypt_shared_v1-macos-arm64-enterprise-8.0.3.tgz
+   curl -O https://downloads.mongodb.com/osx/mongo_crypt_shared_v1-macos-arm64-enterprise-9.0.4.tgz
 
    # Extract
-   tar -xvf mongo_crypt_shared_v1-macos-arm64-enterprise-8.0.3.tgz
+   tar -xvf mongo_crypt_shared_v1-macos-arm64-enterprise-9.0.4.tgz
 
    # Copy to a standard location
    sudo cp lib/mongo_crypt_v1.dylib /usr/local/lib/
@@ -176,10 +176,10 @@ Three pre-seeded tenants:
    **For Linux:**
    ```bash
    # Download the library (Ubuntu/Debian example)
-   curl -O https://downloads.mongodb.com/linux/mongo_crypt_shared_v1-ubuntu2204-x86_64-enterprise-8.0.3.tgz
+   curl -O https://downloads.mongodb.com/linux/mongo_crypt_shared_v1-linux-x86_64-enterprise-ubuntu2204-9.0.4.tgz
 
    # Extract
-   tar -xvf mongo_crypt_shared_v1-ubuntu2204-x86_64-enterprise-8.0.3.tgz
+   tar -xvf mongo_crypt_shared_v1-linux-x86_64-enterprise-ubuntu2204-9.0.4.tgz
 
    # Copy to a standard location
    sudo cp lib/mongo_crypt_v1.so /usr/local/lib/
@@ -219,6 +219,8 @@ Three pre-seeded tenants:
 
 ### Option 1: Docker Setup (Recommended for Quick Demo)
 
+**Existing installation?** Read [Upgrading an existing demo](DOCKER_SETUP.md#upgrading-an-existing-demo) before starting MongoDB 9.0 on an existing data volume. Back up the database, key vault, and tenant master keys together. Updating this repository does not upgrade an Atlas cluster.
+
 The easiest way to run the entire application:
 
 ```bash
@@ -227,7 +229,7 @@ docker-compose up --build
 ```
 
 This will:
-- Start MongoDB 8.0 in a container
+- Start MongoDB 9.0.4 in a container
 - Build and start the backend (Java 21 + Spring Boot)
 - Build and start the frontend (React + Nginx)
 - Configure networking and health checks
@@ -518,6 +520,8 @@ The frontend will be available at `http://localhost:3000`
 - `POST /api/v1/demo/application-level-access-control` - Demonstrate application-level filtering
 
 ## 🧪 Testing the Demo
+
+For automated API checks against a running, seeded demo, run `python3 tests/smoke_test.py --base-url http://localhost:8080` (Python 3, no extra packages). This checks tenant reads, email equality searches, customer-order lookups, and all six cross-tenant decryption attempts without creating or deleting data. It does not check the server version or raw database storage.
 
 ### 1. Verify Encryption
 - Create a customer in tenant_alpha

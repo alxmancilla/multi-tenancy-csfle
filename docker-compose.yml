@@ -10,7 +10,7 @@ services:
   # MongoDB service (local container)
   # Comment out this entire service if using MongoDB Atlas
   mongodb:
-    image: mongo:8.0
+    image: mongo:9.0.4
     container_name: fle-demo-mongodb
     ports:
       - "27017:27017"

@@ -10,7 +10,7 @@ The MongoDB CSFLE Multi-Tenancy Demo is now fully containerized and can be run w
 **File**: `docker-compose.yml`
 
 Defines three services:
-- **mongodb**: MongoDB 8.0 with persistent volume
+- **mongodb**: MongoDB 9.0.4 with persistent volume
 - **backend**: Java 17 Spring Boot application with CSFLE support
 - **frontend**: React 18 application served by Nginx
 
@@ -33,7 +33,7 @@ Multi-stage build:
 - **Automatically downloads MongoDB Automatic Encryption Shared Library** (`mongo_crypt_v1.so`)
   - Modern replacement for `mongocryptd`
   - Architecture-aware: detects ARM64 vs x86_64 and downloads correct version
-  - Version 8.0.5 (compatible with MongoDB Driver 5.2.1)
+  - Version 9.0.4 (Java driver and mongodb-crypt 5.12.0)
 - Sets `MONGOCRYPT_SHARED_LIB_PATH` and `LD_LIBRARY_PATH` environment variables
 - Includes curl for health checks
 - Optimized layer caching for faster rebuilds
@@ -139,7 +139,7 @@ Excludes unnecessary files from Docker build context:
 │  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐      │
 │  │   Frontend   │  │   Backend    │  │   MongoDB    │      │
 │  │              │  │              │  │              │      │
-│  │ React + Vite │  │  Java 21 +   │  │  MongoDB 8.0 │      │
+│  │ React + Vite │  │  Java 21 +   │  │  MongoDB 9.0 │      │
 │  │   + Nginx    │  │ Spring Boot  │  │              │      │
 │  │              │  │   + CSFLE    │  │              │      │
 │  │  Port: 3000  │  │  Port: 8080  │  │ Port: 27017  │      │

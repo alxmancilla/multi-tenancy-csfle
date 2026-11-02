@@ -105,8 +105,8 @@ All components fully implemented with complete functionality:
 **Backend:**
 - Java 21
 - Spring Boot 3.2.0
-- MongoDB Driver Sync 5.2.1
-- MongoDB Automatic Encryption Shared Library 8.0.5
+- MongoDB Driver Sync and mongodb-crypt 5.12.0
+- MongoDB Automatic Encryption Shared Library 9.0.4
 - Lombok (boilerplate reduction)
 
 **Frontend:**
@@ -116,11 +116,11 @@ All components fully implemented with complete functionality:
 - react-json-view 1.21.3 (JSON viewer)
 
 **Database:**
-- MongoDB 8.0
+- MongoDB 9.0
 - Collections: `customers`, `orders`, `__keyVault`
 
 **Encryption:**
-- MongoDB Automatic Encryption Shared Library 8.0.5
+- MongoDB Automatic Encryption Shared Library 9.0.4
 - Replaces deprecated `mongocryptd`
 - Client-side encryption/decryption
 
@@ -144,7 +144,7 @@ docker-compose up --build
 1. Java 21+
 2. Maven 3.6+
 3. Node.js 18+
-4. MongoDB 8.0+
+4. MongoDB 9.0
 5. Install MongoDB Automatic Encryption Shared Library (download from MongoDB website)
 2. Verify installation: `ls -la /usr/local/lib/mongo_crypt_v1.*`
 

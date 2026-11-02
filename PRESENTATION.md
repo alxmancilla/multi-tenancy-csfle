@@ -161,7 +161,7 @@
 **Backend:**
 - Java 17+
 - Spring Boot 3.2.0
-- MongoDB Driver Sync 5.2.1 with CSFLE support
+- MongoDB Driver Sync and mongodb-crypt 5.12.0 with CSFLE support
 - Automatic Encryption Shared Library (libmongocrypt 8.2.5)
 
 **Frontend:**

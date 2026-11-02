@@ -183,29 +183,29 @@ Download and install the MongoDB Automatic Encryption Shared Library:
 
 **macOS (Intel):**
 ```bash
-curl -O https://downloads.mongodb.com/osx/mongo_crypt_shared_v1-macos-x86_64-enterprise-8.0.5.tgz
-tar -xvf mongo_crypt_shared_v1-macos-x86_64-enterprise-8.0.5.tgz
+curl -O https://downloads.mongodb.com/osx/mongo_crypt_shared_v1-macos-x86_64-enterprise-9.0.4.tgz
+tar -xvf mongo_crypt_shared_v1-macos-x86_64-enterprise-9.0.4.tgz
 sudo cp lib/mongo_crypt_v1.dylib /usr/local/lib/
 ```
 
 **macOS (Apple Silicon):**
 ```bash
-curl -O https://downloads.mongodb.com/osx/mongo_crypt_shared_v1-macos-arm64-enterprise-8.0.5.tgz
-tar -xvf mongo_crypt_shared_v1-macos-arm64-enterprise-8.0.5.tgz
+curl -O https://downloads.mongodb.com/osx/mongo_crypt_shared_v1-macos-arm64-enterprise-9.0.4.tgz
+tar -xvf mongo_crypt_shared_v1-macos-arm64-enterprise-9.0.4.tgz
 sudo cp lib/mongo_crypt_v1.dylib /usr/local/lib/
 ```
 
 **Linux (x86_64):**
 ```bash
-curl -O https://downloads.mongodb.com/linux/mongo_crypt_shared_v1-linux-x86_64-enterprise-ubuntu2204-8.0.5.tgz
-tar -xvf mongo_crypt_shared_v1-linux-x86_64-enterprise-ubuntu2204-8.0.5.tgz
+curl -O https://downloads.mongodb.com/linux/mongo_crypt_shared_v1-linux-x86_64-enterprise-ubuntu2204-9.0.4.tgz
+tar -xvf mongo_crypt_shared_v1-linux-x86_64-enterprise-ubuntu2204-9.0.4.tgz
 sudo cp lib/mongo_crypt_v1.so /usr/local/lib/
 ```
 
 **Linux (ARM64):**
 ```bash
-curl -O https://downloads.mongodb.com/linux/mongo_crypt_shared_v1-linux-aarch64-enterprise-ubuntu2204-8.0.5.tgz
-tar -xvf mongo_crypt_shared_v1-linux-aarch64-enterprise-ubuntu2204-8.0.5.tgz
+curl -O https://downloads.mongodb.com/linux/mongo_crypt_shared_v1-linux-aarch64-enterprise-ubuntu2204-9.0.4.tgz
+tar -xvf mongo_crypt_shared_v1-linux-aarch64-enterprise-ubuntu2204-9.0.4.tgz
 sudo cp lib/mongo_crypt_v1.so /usr/local/lib/
 ```
 

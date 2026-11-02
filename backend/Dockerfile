@@ -27,23 +27,23 @@ WORKDIR /app
 
 # Download MongoDB Automatic Encryption Shared Library (mongo_crypt_v1.so)
 # This is the modern replacement for mongocryptd and is required for CSFLE
-# Version 8.0.5 is compatible with MongoDB Driver 5.2.1
+# Version 9.0.4 matches the demo server; Java driver and mongodb-crypt use 5.12.0
 # Detect architecture and download the appropriate version
 RUN ARCH=$(uname -m) && \
     if [ "$ARCH" = "aarch64" ] || [ "$ARCH" = "arm64" ]; then \
         echo "Downloading ARM64 version of mongo_crypt_shared..." && \
-        wget -q https://downloads.mongodb.com/linux/mongo_crypt_shared_v1-linux-aarch64-enterprise-ubuntu2204-8.0.5.tgz && \
-        tar -xzf mongo_crypt_shared_v1-linux-aarch64-enterprise-ubuntu2204-8.0.5.tgz && \
+        wget -q https://downloads.mongodb.com/linux/mongo_crypt_shared_v1-linux-aarch64-enterprise-ubuntu2204-9.0.4.tgz && \
+        tar -xzf mongo_crypt_shared_v1-linux-aarch64-enterprise-ubuntu2204-9.0.4.tgz && \
         mkdir -p /usr/local/lib && \
         cp lib/mongo_crypt_v1.so /usr/local/lib/ && \
-        rm -rf mongo_crypt_shared_v1-linux-aarch64-enterprise-ubuntu2204-8.0.5.tgz lib; \
+        rm -rf mongo_crypt_shared_v1-linux-aarch64-enterprise-ubuntu2204-9.0.4.tgz lib; \
     else \
         echo "Downloading x86_64 version of mongo_crypt_shared..." && \
-        wget -q https://downloads.mongodb.com/linux/mongo_crypt_shared_v1-linux-x86_64-enterprise-ubuntu2204-8.0.5.tgz && \
-        tar -xzf mongo_crypt_shared_v1-linux-x86_64-enterprise-ubuntu2204-8.0.5.tgz && \
+        wget -q https://downloads.mongodb.com/linux/mongo_crypt_shared_v1-linux-x86_64-enterprise-ubuntu2204-9.0.4.tgz && \
+        tar -xzf mongo_crypt_shared_v1-linux-x86_64-enterprise-ubuntu2204-9.0.4.tgz && \
         mkdir -p /usr/local/lib && \
         cp lib/mongo_crypt_v1.so /usr/local/lib/ && \
-        rm -rf mongo_crypt_shared_v1-linux-x86_64-enterprise-ubuntu2204-8.0.5.tgz lib; \
+        rm -rf mongo_crypt_shared_v1-linux-x86_64-enterprise-ubuntu2204-9.0.4.tgz lib; \
     fi
 
 # Set environment variables for the shared library

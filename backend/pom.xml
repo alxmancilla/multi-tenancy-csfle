@@ -20,7 +20,7 @@
     
     <properties>
         <java.version>21</java.version>
-        <mongodb.driver.version>5.2.1</mongodb.driver.version>
+        <mongodb.driver.version>5.12.0</mongodb.driver.version>
     </properties>
 
     <!-- Override Spring Boot's managed MongoDB driver versions -->
@@ -130,6 +130,8 @@
                 <groupId>org.springframework.boot</groupId>
                 <artifactId>spring-boot-maven-plugin</artifactId>
                 <configuration>
+                    <!-- Avoid Boot 3.2.0's interrupted-thread JAR loading bug (spring-boot#38611). -->
+                    <loaderImplementation>CLASSIC</loaderImplementation>
                     <excludes>
                         <exclude>
                             <groupId>org.projectlombok</groupId>

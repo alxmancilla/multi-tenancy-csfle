@@ -7,7 +7,7 @@ This guide helps you configure the MongoDB CSFLE Multi-Tenancy Demo to work with
 ## 📋 Prerequisites
 
 1. **MongoDB Atlas Account**: [Sign up here](https://www.mongodb.com/cloud/atlas/register)
-2. **MongoDB 8.0+ Cluster**: CSFLE requires MongoDB 8.0 or higher
+2. **MongoDB 9.0 Cluster**: Target version for this demo (not the minimum server version for CSFLE)
 3. **Network Access**: Your IP must be whitelisted
 4. **Database User**: With read/write permissions
 
@@ -22,7 +22,7 @@ This guide helps you configure the MongoDB CSFLE Multi-Tenancy Demo to work with
 3. Choose a tier:
    - **M0 (Free)**: Good for testing (limited to 512MB)
    - **M10+**: Recommended for development (better performance)
-4. Select **MongoDB 8.0** or higher
+4. Select **MongoDB 9.0** where available for your tier and region
 5. Choose your cloud provider and region
 6. Click **"Create Cluster"**
 
@@ -64,7 +64,7 @@ This guide helps you configure the MongoDB CSFLE Multi-Tenancy Demo to work with
 1. In Atlas, go to your cluster
 2. Click **"Connect"**
 3. Choose **"Connect your application"**
-4. Select **"Java"** and **"5.2.1 or later"**
+4. Select **"Java"** and a driver version matching **5.12.0** (used by this demo)
 5. Copy the connection string
 
 **Example connection string**:

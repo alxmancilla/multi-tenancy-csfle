@@ -50,7 +50,7 @@ This will:
 1. Load environment variables from `.env` file
 2. Build the backend Docker image (Java 21 + Spring Boot)
 3. Build the frontend Docker image (React + Nginx)
-4. Start MongoDB 8.0 container (if using local MongoDB)
+4. Start MongoDB 9.0.4 container (if using local MongoDB)
 5. Start all services with proper networking and health checks
 
 **Access the application:**
@@ -63,7 +63,7 @@ This will:
 ### Services
 
 1. **MongoDB** (`mongodb`)
-   - Image: `mongo:8.0`
+   - Image: `mongo:9.0.4`
    - Port: `27017`
    - Database: `fle_demo`
    - Persistent volume for data
@@ -99,13 +99,28 @@ The backend container automatically downloads and configures the **MongoDB Autom
 - **Architecture Detection**: Automatically detects CPU architecture and downloads the correct version:
   - **ARM64/aarch64** (Apple Silicon M1/M2/M3): Downloads ARM64 version
   - **x86_64** (Intel/AMD): Downloads x86_64 version
-- **Version**: 8.0.5 (compatible with MongoDB Driver 5.2.1)
+- **Version**: 9.0.4 (Java driver and `mongodb-crypt`: 5.12.0)
 - **Location**: `/usr/local/lib/mongo_crypt_v1.so`
 - **Environment Variables**:
   - `MONGOCRYPT_SHARED_LIB_PATH=/usr/local/lib/mongo_crypt_v1.so`
   - `LD_LIBRARY_PATH=/usr/local/lib`
 
-This library is the **modern replacement for mongocryptd** and provides better performance and easier deployment.
+This library is the **modern replacement for mongocryptd**, which is deprecated in MongoDB 9.0.
+
+## Upgrading an existing demo
+
+The Compose file pins MongoDB and the backend's Automatic Encryption Shared Library to **9.0.4**. Java driver and `mongodb-crypt` dependencies use **5.12.0**. The demo still uses CSFLE; this update does not migrate data to Queryable Encryption.
+
+The backend JAR uses Spring Boot's classic loader to avoid the [Boot 3.2.0 interrupted-thread class-loading bug](https://github.com/spring-projects/spring-boot/issues/38611) exposed during runtime checks. Spring Boot itself is unchanged.
+
+Before starting the new image on an existing local MongoDB volume:
+
+1. Back up `mongodb_data`, the configured key vault (which may be in a separate database), and `master_keys` together. Retain the original tenant master keys; new keys cannot decrypt existing data.
+2. Review MongoDB's [9.0 standalone upgrade procedure](https://www.mongodb.com/docs/manual/release-notes/9.0-upgrade-standalone/) and [compatibility changes](https://www.mongodb.com/docs/manual/release-notes/9.0-compatibility/). Verify the source version and feature compatibility version (FCV) prerequisites before reusing a volume.
+3. Test on a restored copy first, then stop the application and database cleanly before replacing the server image. Do not run `docker compose down -v`; it deletes data and master-key volumes.
+4. Rebuild the backend so it loads the new driver and shared library. Verify tenant reads, email equality searches, and cross-tenant decryption rejection before enabling FCV 9.0 according to the upgrade procedure.
+
+**Atlas:** Changing this repository or rebuilding the backend does not upgrade your Atlas cluster. Manage the cluster version separately in Atlas, with backups and compatibility testing. Do not reset the key vault or regenerate master keys for a version upgrade.
 
 ## 🔧 Docker Commands
 
